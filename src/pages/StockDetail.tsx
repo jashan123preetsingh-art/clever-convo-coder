@@ -92,7 +92,7 @@ export default function StockDetail() {
   const { watchlist, addToWatchlist, removeFromWatchlist } = useStore();
   const inWatchlist = watchlist.includes(symbol || '');
   const [period, setPeriod] = useState('1y');
-  const [chartInterval, setChartInterval] = useState('1d');
+  const [chartInterval] = useState('1d');
   const [showAI, setShowAI] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'technicals' | 'fundamentals' | 'ai'>('overview');
   const [crosshairData, setCrosshairData] = useState<any>(null);
