@@ -110,35 +110,7 @@ function computeQualityScore(stock: Stock): QualityScore {
   return { total, grade, priceEvent, volume, candle, structure, liquidity, relStrength, sector, keyLevel, volumeDesc, candleDesc, structureDesc, risk, invalidation, freshness };
 }
 
-// ═══ MEASURES & SCANS ═══
-const MEASURES = [
-  { key: 'close', label: 'Close', group: 'Price' },
-  { key: 'open', label: 'Open', group: 'Price' },
-  { key: 'high', label: 'High', group: 'Price' },
-  { key: 'low', label: 'Low', group: 'Price' },
-  { key: 'change_pct', label: '% Change', group: 'Price' },
-  { key: 'volume', label: 'Volume', group: 'Volume' },
-  { key: 'avg_volume_10d', label: 'Avg Volume (10d)', group: 'Volume' },
-  { key: 'market_cap', label: 'Market Cap (Cr)', group: 'Fundamentals' },
-  { key: 'pe_ratio', label: 'P/E Ratio', group: 'Fundamentals' },
-  { key: 'roe', label: 'ROE %', group: 'Fundamentals' },
-  { key: 'roce', label: 'ROCE %', group: 'Fundamentals' },
-  { key: 'debt_to_equity', label: 'Debt/Equity', group: 'Fundamentals' },
-  { key: 'dividend_yield', label: 'Dividend Yield %', group: 'Fundamentals' },
-  { key: 'promoter_holding', label: 'Promoter Holding %', group: 'Fundamentals' },
-  { key: 'week_52_high', label: '52W High', group: 'Price Levels' },
-  { key: 'week_52_low', label: '52W Low', group: 'Price Levels' },
-  { key: 'prev_close', label: 'Previous Close', group: 'Price' },
-];
-
-const OPERATORS = [
-  { key: '>', label: 'greater than' },
-  { key: '<', label: 'less than' },
-  { key: '>=', label: '≥' },
-  { key: '<=', label: '≤' },
-  { key: '==', label: 'equal to' },
-];
-
+// ═══ SCAN ENGINE ═══
 interface Condition {
   id: string;
   measure: string;
