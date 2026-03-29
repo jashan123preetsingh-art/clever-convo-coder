@@ -5,6 +5,9 @@ import { INDICES, getAllStocks } from '@/data/mockData';
 import { formatPercent } from '@/utils/format';
 import { useStockSearch } from '@/hooks/useStockData';
 import { useAuth } from '@/hooks/useAuth';
+import { AlertBell } from '@/components/PriceAlerts';
+import { useTheme } from '@/hooks/useTheme';
+import CommandPalette from '@/components/CommandPalette';
 
 const AiAssistant = lazy(() => import('@/components/AiAssistant'));
 
@@ -25,6 +28,7 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
   const navigate = useNavigate();
   const { sidebarOpen, toggleSidebar } = useStore();
   const { user, isAdmin, profile, signOut } = useAuth();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [time, setTime] = useState(new Date());
   const [searchInput, setSearchInput] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -154,6 +158,21 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Command palette trigger */}
+          <button onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/50 border border-border/40 hover:border-border/60 text-muted-foreground hover:text-foreground transition-all">
+            <span className="text-[9px]">⌘K</span>
+          </button>
+
+          <AlertBell />
+
+          {/* Theme toggle */}
+          <button onClick={toggleTheme}
+            className="p-1.5 rounded-md hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors text-sm"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${marketOpen ? 'bg-primary animate-pulse' : 'bg-muted-foreground/50'}`} />
             <span className={`text-[9px] md:text-[10px] font-medium ${marketOpen ? 'text-primary' : 'text-muted-foreground'}`}>
@@ -331,6 +350,8 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
       {userMenuOpen && (
         <div className="fixed inset-0 z-[85]" onClick={() => setUserMenuOpen(false)} />
       )}
+
+      <CommandPalette />
 
       <Suspense fallback={null}>
         <AiAssistant />

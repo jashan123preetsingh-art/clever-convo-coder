@@ -5,6 +5,7 @@ import { INDICES, getTopGainers, getTopLosers, getMostActive, getSectorPerforman
 import { useIndices, useMarketBreadth } from '@/hooks/useStockData';
 import { formatCurrency, formatPercent, formatVolume, timeAgo } from '@/utils/format';
 import MarketBrief from '@/components/MarketBrief';
+import WatchlistWidget from '@/components/WatchlistWidget';
 
 // ── Quick Action Card ──
 function QuickAction({ icon, title, desc, to }: { icon: string; title: string; desc: string; to: string }) {
@@ -266,6 +267,9 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* ═══ Watchlist ═══ */}
+      <WatchlistWidget />
 
       {/* ═══ Main Grid ═══ */}
       <div className="grid grid-cols-12 gap-3">
