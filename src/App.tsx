@@ -18,6 +18,7 @@ const OIAnalysis = lazy(() => import("./pages/OIAnalysis"));
 const News = lazy(() => import("./pages/News"));
 const StockDetail = lazy(() => import("./pages/StockDetail"));
 const Admin = lazy(() => import("./pages/Admin"));
+const TradingAgent = lazy(() => import("./pages/TradingAgent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
