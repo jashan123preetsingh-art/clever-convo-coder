@@ -8,6 +8,7 @@ interface AuthState {
   loading: boolean;
   isAdmin: boolean;
   profile: any | null;
+  roleLoading: boolean;
 }
 
 export function useAuth() {
