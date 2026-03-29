@@ -313,7 +313,7 @@ function AgentReportCard({ agentKey, content, accent, delay, forceExpand }: { ag
       style={{ background: 'linear-gradient(135deg, hsl(var(--card)), hsl(var(--card)) 80%, hsl(var(--secondary) / 0.3))' }}
     >
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setLocalExpanded(!localExpanded)}
         className="w-full flex items-center justify-between p-3 hover:bg-secondary/20 transition-colors text-left group"
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
