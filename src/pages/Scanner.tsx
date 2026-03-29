@@ -27,8 +27,6 @@ interface QualityScore {
 
 function computeQualityScore(stock: Stock): QualityScore {
   let priceEvent = 0, volume = 0, candle = 0, structure = 0, liquidity = 0, relStrength = 0, sector = 0;
-
-  // Price Event (0-20): How significant is the price move?
   const absChange = Math.abs(stock.change_pct);
   if (absChange >= 10) priceEvent = 20;
   else if (absChange >= 5) priceEvent = 17;
@@ -37,13 +35,11 @@ function computeQualityScore(stock: Stock): QualityScore {
   else if (absChange >= 1) priceEvent = 8;
   else priceEvent = 4;
 
-  // Proximity to 52W high/low
   const distToHigh = stock.week_52_high > 0 ? ((stock.week_52_high - stock.ltp) / stock.week_52_high) * 100 : 50;
   const distToLow = stock.week_52_low > 0 ? ((stock.ltp - stock.week_52_low) / stock.week_52_low) * 100 : 50;
   if (distToHigh < 2) priceEvent = Math.max(priceEvent, 19);
   if (distToHigh < 5) priceEvent = Math.max(priceEvent, 16);
 
-  // Volume (0-20): Volume relative to average
   const volRatio = (stock.avg_volume_10d && stock.avg_volume_10d > 0) ? stock.volume / stock.avg_volume_10d : 1;
   if (volRatio >= 5) volume = 20;
   else if (volRatio >= 3) volume = 17;
@@ -52,7 +48,6 @@ function computeQualityScore(stock: Stock): QualityScore {
   else if (volRatio >= 1) volume = 7;
   else volume = 3;
 
-  // Candle (0-15): Body vs range, wicks
   const bodyPct = stock.open > 0 ? Math.abs(stock.ltp - stock.open) / Math.max(stock.high - stock.low, 0.01) * 100 : 50;
   const isGreen = stock.ltp > stock.open;
   if (bodyPct >= 80) candle = 15;
@@ -63,8 +58,6 @@ function computeQualityScore(stock: Stock): QualityScore {
   const closeNearHigh = stock.high > stock.low ? (stock.ltp - stock.low) / (stock.high - stock.low) : 0.5;
   if (isGreen && closeNearHigh > 0.85) candle = Math.min(candle + 3, 15);
 
-  // Structure (0-15): Trend alignment
-  // Using 52W positioning as proxy
   const w52Range = stock.week_52_high - stock.week_52_low;
   const posIn52W = w52Range > 0 ? (stock.ltp - stock.week_52_low) / w52Range : 0.5;
   if (posIn52W >= 0.85) structure = 12;
@@ -73,15 +66,13 @@ function computeQualityScore(stock: Stock): QualityScore {
   else structure = 4;
   if (stock.change_pct > 0 && posIn52W > 0.7) structure = Math.min(structure + 3, 15);
 
-  // Liquidity (0-10): Volume adequacy
   if (stock.volume >= 10000000) liquidity = 10;
   else if (stock.volume >= 5000000) liquidity = 8;
   else if (stock.volume >= 1000000) liquidity = 6;
   else if (stock.volume >= 500000) liquidity = 4;
   else liquidity = 2;
 
-  // Relative Strength (0-15): vs market
-  const mktAvgChange = 0.5; // approximate
+  const mktAvgChange = 0.5;
   const rsVsMarket = stock.change_pct - mktAvgChange;
   if (rsVsMarket >= 5) relStrength = 15;
   else if (rsVsMarket >= 3) relStrength = 12;
@@ -89,7 +80,6 @@ function computeQualityScore(stock: Stock): QualityScore {
   else if (rsVsMarket >= 0) relStrength = 6;
   else relStrength = 3;
 
-  // Sector (0-5): Quality fundamentals
   if (stock.roe && stock.roe > 20) sector += 2;
   if (stock.debt_to_equity !== undefined && stock.debt_to_equity < 0.5) sector += 2;
   if (stock.promoter_holding && stock.promoter_holding > 50) sector += 1;
@@ -98,7 +88,6 @@ function computeQualityScore(stock: Stock): QualityScore {
   const total = priceEvent + volume + candle + structure + liquidity + relStrength + sector;
   const grade = total >= 85 ? 'A+' : total >= 75 ? 'A' : total >= 65 ? 'B+' : total >= 55 ? 'B' : total >= 45 ? 'C+' : total >= 35 ? 'C' : 'D';
 
-  // Descriptive analysis
   const keyLevel = distToHigh < 2 ? '52-Week High' : distToHigh < 5 ? 'Near 52W High' : distToLow < 5 ? 'Near 52W Low' : `${posIn52W > 0.5 ? 'Upper' : 'Lower'} Range`;
   const volumeDesc = volRatio >= 3 ? `Massive volume ${volRatio.toFixed(1)}x average` : volRatio >= 1.5 ? `Above average volume ${volRatio.toFixed(1)}x` : 'Normal volume';
   const candleDesc = bodyPct >= 80 ? (isGreen ? 'Bullish Marubozu' : 'Bearish Marubozu') : closeNearHigh > 0.85 ? 'Closing near high' : closeNearHigh < 0.15 ? 'Closing near low' : 'Mixed candle';
@@ -180,7 +169,7 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
     ] },
 
-  // ─── ORB (Opening Range Breakout) ───
+  // ─── ORB ───
   { id: 'orb1', name: '15 Min ORB – Bullish', description: 'Price above 15min opening range high with volume', icon: '⏱️', category: 'orb',
     conditions: [
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.005 },
@@ -214,7 +203,7 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
     ] },
 
-  // ─── EMA / MA SCREENS ───
+  // ─── EMA ───
   { id: 'ema1', name: 'Golden Crossover', description: 'Price > 50 EMA crossing above 200 EMA zone', icon: '✨', category: 'ema',
     conditions: [
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
@@ -297,12 +286,12 @@ const DEFAULT_SCANS: ScanPreset[] = [
     ] },
 
   // ─── CANDLESTICK ───
-  { id: 'c1', name: 'Bullish Marubozu', description: 'Strong green candle, close near high – no upper wick', icon: '🟩', category: 'candle',
+  { id: 'c1', name: 'Bullish Marubozu', description: 'Strong green candle, close near high', icon: '🟩', category: 'candle',
     conditions: [
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
       { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.995 },
     ] },
-  { id: 'c2', name: 'Bearish Marubozu', description: 'Strong red candle, close near low – full body', icon: '🟥', category: 'candle',
+  { id: 'c2', name: 'Bearish Marubozu', description: 'Strong red candle, close near low', icon: '🟥', category: 'candle',
     conditions: [
       { measure: 'change_pct', operator: '<', compareType: 'number', value: '-2', compareMeasure: '', multiplier: 1 },
       { measure: 'close', operator: '<=', compareType: 'measure', value: '', compareMeasure: 'low', multiplier: 1.005 },
@@ -313,19 +302,19 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'low', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.98 },
       { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.99 },
     ] },
-  { id: 'c4', name: 'Shooting Star', description: 'Long upper wick after uptrend – bearish reversal', icon: '⭐', category: 'candle',
+  { id: 'c4', name: 'Shooting Star', description: 'Long upper wick – bearish reversal signal', icon: '⭐', category: 'candle',
     conditions: [
       { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.0 },
       { measure: 'high', operator: '>', compareType: 'measure', value: '', compareMeasure: 'close', multiplier: 1.02 },
       { measure: 'close', operator: '<=', compareType: 'measure', value: '', compareMeasure: 'low', multiplier: 1.01 },
     ] },
-  { id: 'c5', name: 'Bullish Engulfing', description: 'Today body fully engulfs yesterday – bullish', icon: '🟢', category: 'candle',
+  { id: 'c5', name: 'Bullish Engulfing', description: 'Today body engulfs yesterday – bullish', icon: '🟢', category: 'candle',
     conditions: [
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '1.5', compareMeasure: '', multiplier: 1 },
       { measure: 'open', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.01 },
     ] },
-  { id: 'c6', name: 'Dark Cloud Cover', description: 'Bearish reversal – opened above prev high, closed below midpoint', icon: '🌑', category: 'candle',
+  { id: 'c6', name: 'Dark Cloud Cover', description: 'Bearish reversal pattern', icon: '🌑', category: 'candle',
     conditions: [
       { measure: 'open', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.005 },
       { measure: 'change_pct', operator: '<', compareType: 'number', value: '-1', compareMeasure: '', multiplier: 1 },
@@ -338,17 +327,17 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 'i2', name: 'Intraday Reversal', description: 'Opened down but recovering – potential reversal', icon: '🔄', category: 'intraday',
+  { id: 'i2', name: 'Intraday Reversal', description: 'Opened down but recovering – reversal signal', icon: '🔄', category: 'intraday',
     conditions: [
       { measure: 'open', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.99 },
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.01 },
     ] },
-  { id: 'i3', name: 'Narrow Range Day (NR7)', description: 'Smallest range in 7 days – volatility contraction', icon: '◇', category: 'intraday',
+  { id: 'i3', name: 'Narrow Range Day (NR7)', description: 'Smallest range – volatility contraction', icon: '◇', category: 'intraday',
     conditions: [
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
       { measure: 'change_pct', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 'i4', name: 'Wide Range Day', description: 'High intraday range – strong directional move', icon: '↔️', category: 'intraday',
+  { id: 'i4', name: 'Wide Range Day', description: 'High intraday range – strong move', icon: '↔️', category: 'intraday',
     conditions: [
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '3', compareMeasure: '', multiplier: 1 },
     ] },
@@ -366,7 +355,7 @@ const DEFAULT_SCANS: ScanPreset[] = [
     conditions: [{ measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.1', compareMeasure: '', multiplier: 1 }] },
   { id: 's11', name: 'Promoter Conviction (>60%)', description: 'Strong promoter holding', icon: '🛡️', category: 'quality',
     conditions: [{ measure: 'promoter_holding', operator: '>', compareType: 'number', value: '60', compareMeasure: '', multiplier: 1 }] },
-  { id: 'q5', name: 'Negative Working Capital', description: 'Companies with operational efficiency', icon: '💡', category: 'quality',
+  { id: 'q5', name: 'Negative Working Capital', description: 'Operational efficiency leaders', icon: '💡', category: 'quality',
     conditions: [
       { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.3', compareMeasure: '', multiplier: 1 },
@@ -377,30 +366,30 @@ const DEFAULT_SCANS: ScanPreset[] = [
     conditions: [{ measure: 'pe_ratio', operator: '<', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 }] },
   { id: 's13', name: 'High Dividend (>3%)', description: 'Dividend yield above 3%', icon: '💰', category: 'value',
     conditions: [{ measure: 'dividend_yield', operator: '>', compareType: 'number', value: '3', compareMeasure: '', multiplier: 1 }] },
-  { id: 's14', name: 'Value + Quality', description: 'PE<20, ROE>15, Low Debt – best of both', icon: '🎯', category: 'value',
+  { id: 's14', name: 'Value + Quality', description: 'PE<20, ROE>15, Low Debt', icon: '🎯', category: 'value',
     conditions: [
       { measure: 'pe_ratio', operator: '<', compareType: 'number', value: '20', compareMeasure: '', multiplier: 1 },
       { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 'v6', name: 'Undervalued Near High', description: 'Low PE stocks nearing 52W high – overlooked value', icon: '💎', category: 'value',
+  { id: 'v6', name: 'Undervalued Near High', description: 'Low PE stocks nearing 52W high', icon: '💎', category: 'value',
     conditions: [
       { measure: 'pe_ratio', operator: '<', compareType: 'number', value: '20', compareMeasure: '', multiplier: 1 },
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.9 },
     ] },
-  { id: 'v7', name: 'Potential Multibagger', description: 'Growth + momentum + quality metrics combined', icon: '👑', category: 'value',
+  { id: 'v7', name: 'Potential Multibagger', description: 'Growth + momentum + quality combined', icon: '👑', category: 'value',
     conditions: [
       { measure: 'roe', operator: '>', compareType: 'number', value: '18', compareMeasure: '', multiplier: 1 },
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '0', compareMeasure: '', multiplier: 1 },
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 'v8', name: 'Mighty Midcap Stocks', description: 'Mid-caps with robust fundamentals and growth', icon: '💪', category: 'value',
+  { id: 'v8', name: 'Mighty Midcap Stocks', description: 'Mid-caps with robust fundamentals', icon: '💪', category: 'value',
     conditions: [
       { measure: 'market_cap', operator: '>', compareType: 'number', value: '5000', compareMeasure: '', multiplier: 1 },
       { measure: 'market_cap', operator: '<', compareType: 'number', value: '50000', compareMeasure: '', multiplier: 1 },
       { measure: 'roe', operator: '>', compareType: 'number', value: '12', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 'v9', name: 'Stellar Smallcap Stocks', description: 'High-performing small-caps with solid fundamentals', icon: '🌟', category: 'value',
+  { id: 'v9', name: 'Stellar Smallcap Stocks', description: 'High-performing small-caps', icon: '🌟', category: 'value',
     conditions: [
       { measure: 'market_cap', operator: '<', compareType: 'number', value: '5000', compareMeasure: '', multiplier: 1 },
       { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
@@ -408,29 +397,29 @@ const DEFAULT_SCANS: ScanPreset[] = [
     ] },
 
   // ─── SWING ───
-  { id: 'sw1', name: 'Swing Trading – Large Cap', description: 'RSI in sweet spot + volume on large caps', icon: '🔄', category: 'swing',
+  { id: 'sw1', name: 'Swing Trading – Large Cap', description: 'RSI sweet spot + volume on large caps', icon: '🔄', category: 'swing',
     conditions: [
       { measure: 'market_cap', operator: '>', compareType: 'number', value: '20000', compareMeasure: '', multiplier: 1 },
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
     ] },
-  { id: 'sw2', name: 'Swing Fake and Move Setup', description: 'Stocks faking out then reversing with volume', icon: '🎭', category: 'swing',
+  { id: 'sw2', name: 'Swing Fake and Move', description: 'Fakeout reversal with volume confirmation', icon: '🎭', category: 'swing',
     conditions: [
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.01 },
       { measure: 'low', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.995 },
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
     ] },
-  { id: 'sw3', name: 'One Day Holding', description: 'Buy at today low, sell tomorrow for 33-63% potential', icon: '📅', category: 'swing',
+  { id: 'sw3', name: 'One Day Holding', description: 'Buy today sell tomorrow setup', icon: '📅', category: 'swing',
     conditions: [
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
     ] },
-  { id: 'sw4', name: 'Short Term Breakouts', description: 'Stocks breaking out with price above 6-day max', icon: '🚀', category: 'swing',
+  { id: 'sw4', name: 'Short Term Breakouts', description: 'Stocks breaking out above recent highs', icon: '🚀', category: 'swing',
     conditions: [
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.02 },
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
     ] },
-  { id: 'sw5', name: 'Swing High Volume', description: 'Swing stocks with high volume – institutional interest', icon: '🏛️', category: 'swing',
+  { id: 'sw5', name: 'Swing High Volume', description: 'Institutional interest – high volume swings', icon: '🏛️', category: 'swing',
     conditions: [
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2.5 },
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '1.5', compareMeasure: '', multiplier: 1 },
@@ -450,19 +439,33 @@ const DEFAULT_SCANS: ScanPreset[] = [
 ];
 
 const CATEGORIES = [
-  { key: 'all', label: 'All Scans', icon: '◎' },
-  { key: 'breakout', label: 'Breakouts', icon: '⚡' },
-  { key: 'orb', label: 'ORB', icon: '⏱️' },
-  { key: 'ema', label: 'EMA / MA', icon: '📊' },
-  { key: 'momentum', label: 'Momentum', icon: '🟢' },
-  { key: 'candle', label: 'Candlestick', icon: '🕯️' },
-  { key: 'intraday', label: 'Intraday', icon: '📈' },
-  { key: 'volume', label: 'Volume', icon: '🌊' },
-  { key: 'swing', label: 'Swing', icon: '🔄' },
-  { key: 'quality', label: 'Quality', icon: '💎' },
-  { key: 'value', label: 'Value', icon: '🏷️' },
-  { key: 'price', label: 'Price', icon: '🪙' },
+  { key: 'all', label: 'All Scans', icon: '◎', color: 'text-foreground' },
+  { key: 'breakout', label: 'Breakouts', icon: '⚡', color: 'text-accent' },
+  { key: 'orb', label: 'ORB', icon: '⏱️', color: 'text-[hsl(var(--terminal-cyan))]' },
+  { key: 'ema', label: 'EMA / MA', icon: '📊', color: 'text-[hsl(var(--terminal-blue))]' },
+  { key: 'momentum', label: 'Momentum', icon: '🟢', color: 'text-primary' },
+  { key: 'candle', label: 'Candlestick', icon: '🕯️', color: 'text-[hsl(var(--terminal-purple))]' },
+  { key: 'intraday', label: 'Intraday', icon: '📈', color: 'text-[hsl(var(--terminal-cyan))]' },
+  { key: 'volume', label: 'Volume', icon: '🌊', color: 'text-[hsl(var(--terminal-blue))]' },
+  { key: 'swing', label: 'Swing', icon: '🔄', color: 'text-accent' },
+  { key: 'quality', label: 'Quality', icon: '💎', color: 'text-[hsl(var(--terminal-purple))]' },
+  { key: 'value', label: 'Value', icon: '🏷️', color: 'text-primary' },
+  { key: 'price', label: 'Price', icon: '🪙', color: 'text-accent' },
 ];
+
+const CATEGORY_ACCENT: Record<string, string> = {
+  breakout: 'border-l-[hsl(var(--terminal-amber))]',
+  orb: 'border-l-[hsl(var(--terminal-cyan))]',
+  ema: 'border-l-[hsl(var(--terminal-blue))]',
+  momentum: 'border-l-primary',
+  candle: 'border-l-[hsl(var(--terminal-purple))]',
+  intraday: 'border-l-[hsl(var(--terminal-cyan))]',
+  volume: 'border-l-[hsl(var(--terminal-blue))]',
+  swing: 'border-l-[hsl(var(--terminal-amber))]',
+  quality: 'border-l-[hsl(var(--terminal-purple))]',
+  value: 'border-l-primary',
+  price: 'border-l-[hsl(var(--terminal-amber))]',
+};
 
 const RESULT_COLUMNS = [
   { key: 'symbol', label: 'Stock', align: 'left' as const },
@@ -483,16 +486,10 @@ function getStockValue(stock: Stock, key: string): number | null {
   return (stock as any)[key] ?? null;
 }
 
-function makeId() { return Math.random().toString(36).slice(2, 9); }
-
-function newCondition(): Condition {
-  return { id: makeId(), measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 };
-}
-
-function runConditions(conditions: Omit<Condition, 'id'>[], logicMode: 'all' | 'any' = 'all'): Stock[] {
+function runConditions(conditions: Omit<Condition, 'id'>[]): Stock[] {
   const stocks = getAllStocks();
   return stocks.filter(stock => {
-    const checker = (cond: Omit<Condition, 'id'>) => {
+    return conditions.every(cond => {
       const leftVal = getStockValue(stock, cond.measure);
       if (leftVal === null) return false;
       let rightVal: number;
@@ -512,8 +509,7 @@ function runConditions(conditions: Omit<Condition, 'id'>[], logicMode: 'all' | '
         case '==': return Math.abs(leftVal - rightVal) < 0.01;
         default: return false;
       }
-    };
-    return logicMode === 'all' ? conditions.every(checker) : conditions.some(checker);
+    });
   });
 }
 
@@ -539,7 +535,7 @@ function GradeBadge({ grade, size = 'sm' }: { grade: string; size?: 'sm' | 'lg' 
 // ═══ SCORE BAR ═══
 function ScoreBar({ label, score, maxScore }: { label: string; score: number; maxScore: number }) {
   const pct = Math.min((score / maxScore) * 100, 100);
-  const color = pct >= 70 ? 'bg-[hsl(var(--terminal-purple))]' : pct >= 40 ? 'bg-[hsl(var(--terminal-blue))]' : 'bg-destructive/60';
+  const color = pct >= 70 ? 'bg-primary' : pct >= 40 ? 'bg-[hsl(var(--terminal-blue))]' : 'bg-destructive/60';
   return (
     <div className="flex items-center gap-2">
       <span className="text-[8px] text-muted-foreground w-16 text-right shrink-0 font-medium">{label}</span>
@@ -558,22 +554,21 @@ function BreakoutDetailCard({ stock, onClose }: { stock: Stock; onClose: () => v
   const volRatio = (stock.avg_volume_10d && stock.avg_volume_10d > 0) ? stock.volume / stock.avg_volume_10d : 1;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+    <motion.div initial={{ opacity: 0, y: 8, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.99 }}
       className="t-card overflow-hidden border-l-2 border-l-primary">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-border/30 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-border/30 flex items-center justify-between bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center gap-4">
           <Link to={`/stock/${stock.symbol}`} className="hover:text-primary transition-colors">
             <span className="text-lg font-black text-foreground">{stock.symbol}</span>
             <p className="text-[9px] text-muted-foreground">{stock.name}</p>
           </Link>
-          <div className="text-[9px] text-muted-foreground">{stock.sector}</div>
+          <span className="text-[9px] text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">{stock.sector}</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right font-data">
             <span className="text-lg font-black text-foreground">{formatCurrency(stock.ltp)}</span>
             <span className={`text-sm font-bold ml-2 ${stock.change_pct >= 0 ? 'text-primary' : 'text-destructive'}`}>
-              ▲ {formatPercent(stock.change_pct)}
+              {stock.change_pct >= 0 ? '▲' : '▼'} {formatPercent(stock.change_pct)}
             </span>
           </div>
           <div className="text-center">
@@ -585,57 +580,35 @@ function BreakoutDetailCard({ stock, onClose }: { stock: Stock; onClose: () => v
           </div>
           <GradeBadge grade={qs.grade} size="lg" />
           <span className="text-lg font-black text-foreground font-data">{qs.total}</span>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg ml-2">✕</button>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg ml-2 hover:bg-secondary/60 w-7 h-7 rounded-md flex items-center justify-center transition-colors">✕</button>
         </div>
       </div>
 
-      {/* Freshness tag */}
       <div className="px-5 py-2 bg-primary/5 border-b border-border/20">
         <span className="text-[10px] text-primary font-bold">● {qs.freshness}</span>
       </div>
 
-      {/* Summary */}
       <div className="px-5 py-3 border-b border-border/20">
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          <span className="text-foreground font-semibold">{stock.symbol}</span> matched "Breakout" — {stock.change_pct >= 0 ? 'up' : 'down'} {Math.abs(stock.change_pct).toFixed(1)}% today with {volRatio.toFixed(1)}x relative volume.
-          Currently at {qs.keyLevel} (₹{stock.ltp.toFixed(2)}).
-          {qs.candleDesc}. {qs.structureDesc}.
+          <span className="text-foreground font-semibold">{stock.symbol}</span> — {stock.change_pct >= 0 ? 'up' : 'down'} {Math.abs(stock.change_pct).toFixed(1)}% with {volRatio.toFixed(1)}x relative volume.
+          {qs.keyLevel} · {qs.candleDesc} · {qs.structureDesc}.
         </p>
       </div>
 
-      {/* Analysis Grid */}
       <div className="grid grid-cols-3 border-b border-border/20">
-        <div className="p-3 border-r border-border/20">
-          <p className="text-[8px] text-muted-foreground mb-0.5">🎯 Key Level</p>
-          <p className="text-[11px] font-bold text-foreground">{qs.keyLevel}</p>
-          <p className="text-[9px] text-muted-foreground">₹{stock.ltp.toFixed(2)}</p>
-        </div>
-        <div className="p-3 border-r border-border/20">
-          <p className="text-[8px] text-muted-foreground mb-0.5">📊 Volume</p>
-          <p className="text-[11px] font-bold text-foreground">{qs.volumeDesc}</p>
-          <p className="text-[9px] text-muted-foreground">{formatVolume(stock.volume)} shares</p>
-        </div>
-        <div className="p-3">
-          <p className="text-[8px] text-muted-foreground mb-0.5">🕯️ Candle</p>
-          <p className="text-[11px] font-bold text-foreground">{qs.candleDesc}</p>
-          <p className="text-[9px] text-muted-foreground">Body {((Math.abs(stock.ltp - stock.open) / Math.max(stock.high - stock.low, 0.01)) * 100).toFixed(0)}% of range</p>
-        </div>
+        {[
+          { icon: '🎯', label: 'Key Level', val: qs.keyLevel, sub: `₹${stock.ltp.toFixed(2)}` },
+          { icon: '📊', label: 'Volume', val: qs.volumeDesc, sub: `${formatVolume(stock.volume)} shares` },
+          { icon: '🕯️', label: 'Candle', val: qs.candleDesc, sub: `Body ${((Math.abs(stock.ltp - stock.open) / Math.max(stock.high - stock.low, 0.01)) * 100).toFixed(0)}% of range` },
+        ].map((item, i) => (
+          <div key={i} className={`p-3 ${i < 2 ? 'border-r border-border/20' : ''}`}>
+            <p className="text-[8px] text-muted-foreground mb-0.5">{item.icon} {item.label}</p>
+            <p className="text-[11px] font-bold text-foreground">{item.val}</p>
+            <p className="text-[9px] text-muted-foreground">{item.sub}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-2 border-b border-border/20">
-        <div className="p-3 border-r border-border/20">
-          <p className="text-[8px] text-muted-foreground mb-0.5">▲ Resistance</p>
-          <p className="text-[11px] font-bold text-destructive">₹{stock.week_52_high.toFixed(2)} (52W High)</p>
-          <p className="text-[9px] text-muted-foreground">{((stock.week_52_high - stock.ltp) / stock.ltp * 100).toFixed(1)}% above</p>
-        </div>
-        <div className="p-3">
-          <p className="text-[8px] text-muted-foreground mb-0.5">♥ Support</p>
-          <p className="text-[11px] font-bold text-primary">₹{stock.prev_close.toFixed(2)} (Prev Close)</p>
-          <p className="text-[9px] text-muted-foreground">{((stock.ltp - stock.prev_close) / stock.prev_close * 100).toFixed(1)}% below</p>
-        </div>
-      </div>
-
-      {/* Quality Score Breakdown */}
       <div className="px-5 py-3 border-b border-border/20">
         <p className="text-[10px] font-bold text-foreground mb-2 flex items-center gap-2">
           ⭐ Quality Score <GradeBadge grade={qs.grade} /> <span className="font-data">{qs.total}/100</span>
@@ -651,13 +624,12 @@ function BreakoutDetailCard({ stock, onClose }: { stock: Stock; onClose: () => v
         </div>
       </div>
 
-      {/* Risk Footer */}
-      <div className="px-5 py-3 bg-secondary/20 space-y-1.5">
-        <div className="flex items-center gap-3">
+      <div className="px-5 py-3 bg-secondary/20 flex items-center gap-6">
+        <div className="flex items-center gap-2">
           <span className="text-[9px] font-bold text-accent">⚠ Risk</span>
           <span className="text-[9px] text-muted-foreground">{qs.risk}</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="text-[9px] font-bold text-destructive">🚫 Invalidation</span>
           <span className="text-[9px] text-muted-foreground">{qs.invalidation}</span>
         </div>
@@ -672,7 +644,6 @@ export default function Scanner() {
   const [activeScan, setActiveScan] = useState<ScanPreset | null>(null);
   const [scanResults, setScanResults] = useState<Stock[] | null>(null);
   const [expandedStock, setExpandedStock] = useState<string | null>(null);
-
   const [sortKey, setSortKey] = useState('change_pct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
@@ -695,16 +666,14 @@ export default function Scanner() {
     setPage(0); setSearch(''); setSortKey('change_pct'); setSortDir('desc'); setExpandedStock(null);
   }, []);
 
-  const activeResults = scanResults;
-
   const sortedResults = useMemo(() => {
-    if (!activeResults) return null;
-    return [...activeResults].sort((a, b) => {
+    if (!scanResults) return null;
+    return [...scanResults].sort((a, b) => {
       const av = getStockValue(a, sortKey) || 0;
       const bv = getStockValue(b, sortKey) || 0;
       return sortDir === 'asc' ? av - bv : bv - av;
     });
-  }, [activeResults, sortKey, sortDir]);
+  }, [scanResults, sortKey, sortDir]);
 
   const filteredResults = useMemo(() => {
     if (!sortedResults) return null;
@@ -735,179 +704,264 @@ export default function Scanner() {
     URL.revokeObjectURL(url);
   }, [filteredResults]);
 
-  return (
-    <div className="p-4 max-w-[1500px] mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-lg font-bold text-foreground">Scanner</h1>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Scan {getAllStocks().length} stocks · {DEFAULT_SCANS.length} algorithms · 12 categories · 7-pillar quality scoring</p>
-        </div>
-      </div>
+  // Stats bar
+  const totalStocks = getAllStocks().length;
+  const topScanCount = useMemo(() => {
+    let max = 0; let maxName = '';
+    Object.entries(scanCounts).forEach(([id, c]) => { if (c > max) { max = c; maxName = DEFAULT_SCANS.find(s => s.id === id)?.name || ''; } });
+    return { count: max, name: maxName };
+  }, [scanCounts]);
 
-      {/* Categories */}
-      <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
-        {CATEGORIES.map(c => {
-          const count = selectedCategory === c.key
-            ? (c.key === 'all' ? DEFAULT_SCANS.length : DEFAULT_SCANS.filter(s => s.category === c.key).length)
-            : (c.key === 'all' ? DEFAULT_SCANS.length : DEFAULT_SCANS.filter(s => s.category === c.key).length);
+  return (
+    <div className="p-4 max-w-[1600px] mx-auto space-y-4">
+      {/* ═══ Premium Header ═══ */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-3">
+            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-[hsl(var(--terminal-cyan)/0.1)] flex items-center justify-center border border-primary/20">
+              <span className="text-sm">⊕</span>
+            </span>
+            Scanner
+          </h1>
+          <p className="text-[10px] text-muted-foreground mt-1 ml-11">
+            {totalStocks} stocks · {DEFAULT_SCANS.length} algorithms · {CATEGORIES.length - 1} categories · 7-pillar quality scoring
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-card rounded-lg px-3 py-2 border border-border/40 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary pulse-live" />
+            <span className="text-[9px] text-muted-foreground font-medium">Most Active: </span>
+            <span className="text-[9px] text-primary font-bold">{topScanCount.name}</span>
+            <span className="text-[9px] text-foreground font-bold font-data">({topScanCount.count})</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ═══ Category Tabs ═══ */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {CATEGORIES.map((c, i) => {
+          const count = c.key === 'all' ? DEFAULT_SCANS.length : DEFAULT_SCANS.filter(s => s.category === c.key).length;
+          const isActive = selectedCategory === c.key;
           return (
-            <button key={c.key} onClick={() => setSelectedCategory(c.key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold border whitespace-nowrap transition-all
-                ${selectedCategory === c.key
-                  ? 'bg-primary/10 text-primary border-primary/30 glow-primary'
-                  : 'bg-card text-muted-foreground border-border/50 hover:text-foreground hover:border-border'}`}>
-              <span>{c.icon}</span> {c.label}
-              <span className="text-[8px] opacity-60">({count})</span>
-            </button>
+            <motion.button key={c.key} onClick={() => setSelectedCategory(c.key)}
+              initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-semibold border whitespace-nowrap transition-all duration-200
+                ${isActive
+                  ? 'bg-primary/10 text-primary border-primary/30 shadow-[0_0_12px_hsl(var(--primary)/0.1)]'
+                  : 'bg-card/80 text-muted-foreground border-border/30 hover:text-foreground hover:border-border/60 hover:bg-card'}`}>
+              <span className="text-sm">{c.icon}</span>
+              <span>{c.label}</span>
+              <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-primary/15 text-primary' : 'bg-secondary/80 text-muted-foreground/70'}`}>{count}</span>
+            </motion.button>
           );
         })}
       </div>
 
-      {/* Scan Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mb-4">
-        {filteredScans.map(scan => (
-          <motion.button key={scan.id} onClick={() => selectScan(scan)}
-            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-            className={`text-left p-3 rounded-lg border transition-all
-              ${activeScan?.id === scan.id
-                ? 'bg-primary/5 border-primary/30 glow-primary'
-                : 'bg-card border-border/40 hover:border-border/80'}`}>
-            <div className="flex items-start justify-between mb-1">
-              <span className="text-lg">{scan.icon}</span>
-              <span className={`text-[10px] font-bold font-data px-2 py-0.5 rounded-full
-                ${scanCounts[scan.id] > 0 ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'}`}>
-                {scanCounts[scan.id]}
-              </span>
-            </div>
-            <p className="text-[11px] font-semibold text-foreground mb-0.5">{scan.name}</p>
-            <p className="text-[8px] text-muted-foreground leading-relaxed">{scan.description}</p>
-          </motion.button>
-        ))}
+      {/* ═══ Scan Cards Grid ═══ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+        <AnimatePresence mode="popLayout">
+          {filteredScans.map((scan, i) => {
+            const count = scanCounts[scan.id] || 0;
+            const isActive = activeScan?.id === scan.id;
+            const accent = CATEGORY_ACCENT[scan.category] || 'border-l-primary';
+            return (
+              <motion.button key={scan.id} onClick={() => selectScan(scan)}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15, delay: i * 0.015 }}
+                className={`text-left p-3 rounded-lg border border-l-[3px] transition-all duration-200 group relative overflow-hidden
+                  ${accent}
+                  ${isActive
+                    ? 'bg-primary/5 border-primary/30 shadow-[0_0_20px_hsl(var(--primary)/0.08)]'
+                    : 'bg-card/80 border-border/30 hover:bg-card hover:border-border/60'}`}>
+                {/* Subtle top gradient */}
+                <div className={`absolute inset-x-0 top-0 h-px ${isActive ? 'bg-gradient-to-r from-transparent via-primary/40 to-transparent' : 'bg-transparent'}`} />
+
+                <div className="flex items-start justify-between mb-1.5">
+                  <span className="text-base group-hover:scale-110 transition-transform duration-200">{scan.icon}</span>
+                  <span className={`text-[10px] font-black font-data px-2 py-0.5 rounded-full transition-colors
+                    ${count > 0
+                      ? isActive ? 'bg-primary/15 text-primary' : 'bg-primary/8 text-primary'
+                      : 'bg-secondary/60 text-muted-foreground/50'}`}>
+                    {count}
+                  </span>
+                </div>
+                <p className={`text-[10px] font-bold mb-0.5 transition-colors ${isActive ? 'text-primary' : 'text-foreground group-hover:text-foreground'}`}>
+                  {scan.name}
+                </p>
+                <p className="text-[8px] text-muted-foreground/80 leading-relaxed line-clamp-2">{scan.description}</p>
+              </motion.button>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
       {/* ═══ RESULTS ═══ */}
-      {scanResults && (
-        <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-[13px] font-bold text-foreground">
-                {activeScan ? `${activeScan.icon} ${activeScan.name}` : 'Scan Results'}
-              </h2>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{filteredResults?.length || 0} stocks matched · Click any row for detailed analysis</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {filteredResults && filteredResults.length > 0 && (
-                <button onClick={exportCSV}
-                  className="px-3 py-1.5 rounded-md text-[10px] font-medium bg-card text-muted-foreground border border-border/50 hover:text-foreground transition-all">
-                  Export CSV
-                </button>
-              )}
-              <input type="text" placeholder="Filter..." value={search}
-                onChange={e => { setSearch(e.target.value); setPage(0); }}
-                className="bg-secondary/60 border border-border/50 rounded-md px-3 py-1.5 text-[10px] text-foreground placeholder:text-muted-foreground w-36 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-            </div>
-          </div>
-
-          {/* Expanded Detail Card */}
-          <AnimatePresence>
-            {expandedStock && pagedResults && (
-              <div className="mb-3">
-                <BreakoutDetailCard
-                  stock={pagedResults.find(s => s.symbol === expandedStock) || getAllStocks().find(s => s.symbol === expandedStock)!}
-                  onClose={() => setExpandedStock(null)}
-                />
+      <AnimatePresence>
+        {scanResults && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+            {/* Results Header */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-8 rounded-full bg-primary" />
+                <div>
+                  <h2 className="text-[13px] font-black text-foreground flex items-center gap-2">
+                    {activeScan?.icon} {activeScan?.name}
+                    <span className="text-[10px] font-bold text-primary font-data bg-primary/8 px-2 py-0.5 rounded-full">
+                      {filteredResults?.length || 0} matches
+                    </span>
+                  </h2>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Click any row for detailed quality analysis</p>
+                </div>
               </div>
-            )}
-          </AnimatePresence>
-
-          {pagedResults && pagedResults.length > 0 ? (
-            <div className="t-card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-[10px]">
-                  <thead>
-                    <tr className="bg-secondary/30 border-b border-border/40">
-                      <th className="px-3 py-2.5 text-left text-[9px] font-semibold text-muted-foreground w-8">#</th>
-                      {RESULT_COLUMNS.map(col => (
-                        <th key={col.key} onClick={() => handleSort(col.key)}
-                          className={`px-3 py-2.5 text-[9px] font-semibold cursor-pointer select-none transition-colors hover:text-foreground
-                            ${col.align === 'right' ? 'text-right' : 'text-left'}
-                            ${sortKey === col.key ? 'text-primary' : 'text-muted-foreground'}`}>
-                          {col.label} {sortKey === col.key && (sortDir === 'asc' ? '↑' : '↓')}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedResults.map((stock, idx) => {
-                      const qs = computeQualityScore(stock);
-                      const isExpanded = expandedStock === stock.symbol;
-                      return (
-                        <tr key={stock.symbol}
-                          onClick={() => setExpandedStock(isExpanded ? null : stock.symbol)}
-                          className={`border-b border-border/10 cursor-pointer transition-colors
-                            ${isExpanded ? 'bg-primary/5' : 'hover:bg-secondary/20'}`}>
-                          <td className="px-3 py-2.5 text-muted-foreground text-[9px] font-data">{page * PAGE_SIZE + idx + 1}</td>
-                          <td className="px-3 py-2.5">
-                            <div className="flex items-center gap-2">
-                              <GradeBadge grade={qs.grade} />
-                              <div>
-                                <Link to={`/stock/${stock.symbol}`} onClick={e => e.stopPropagation()}
-                                  className="font-semibold text-foreground text-[11px] hover:text-primary transition-colors">{stock.symbol}</Link>
-                                <p className="text-[8px] text-muted-foreground hidden sm:block">{stock.sector}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-foreground font-medium font-data">{formatCurrency(stock.ltp)}</td>
-                          <td className="px-3 py-2.5 text-right">
-                            <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold font-data
-                              ${stock.change_pct >= 0 ? 'bg-primary/8 text-primary' : 'bg-destructive/8 text-destructive'}`}>
-                              {stock.change_pct >= 0 ? '+' : ''}{formatPercent(stock.change_pct)}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-muted-foreground font-data">{formatVolume(stock.volume)}</td>
-                          <td className="px-3 py-2.5 text-right text-muted-foreground font-data">{formatMarketCap(stock.market_cap)}</td>
-                          <td className="px-3 py-2.5 text-right text-muted-foreground font-data">{stock.pe_ratio && stock.pe_ratio > 0 ? stock.pe_ratio.toFixed(1) : '—'}</td>
-                          <td className="px-3 py-2.5 text-right">
-                            <span className={`font-data ${(stock.roe || 0) >= 15 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                              {stock.roe ? `${stock.roe}%` : '—'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-right">
-                            <span className={`text-[10px] font-bold font-data ${qs.total >= 65 ? 'text-primary' : qs.total >= 45 ? 'text-accent' : 'text-muted-foreground'}`}>
-                              {qs.total}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="flex items-center gap-2">
+                {filteredResults && filteredResults.length > 0 && (
+                  <button onClick={exportCSV}
+                    className="px-3 py-1.5 rounded-md text-[10px] font-medium bg-card text-muted-foreground border border-border/40 hover:text-foreground hover:border-border/60 transition-all flex items-center gap-1.5">
+                    <span className="text-xs">↓</span> Export
+                  </button>
+                )}
+                <div className="relative">
+                  <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input type="text" placeholder="Filter results..." value={search}
+                    onChange={e => { setSearch(e.target.value); setPage(0); }}
+                    className="bg-card border border-border/40 rounded-md pl-8 pr-3 py-1.5 text-[10px] text-foreground placeholder:text-muted-foreground w-40 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/30 transition-all" />
+                </div>
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 py-3 border-t border-border/20">
-                  <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-                    className="px-3 py-1 rounded-md text-[9px] font-medium bg-secondary text-muted-foreground border border-border/50 hover:text-foreground disabled:opacity-30">← Prev</button>
-                  <span className="text-[9px] text-muted-foreground font-data">{page + 1} / {totalPages}</span>
-                  <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                    className="px-3 py-1 rounded-md text-[9px] font-medium bg-secondary text-muted-foreground border border-border/50 hover:text-foreground disabled:opacity-30">Next →</button>
+            </div>
+
+            {/* Expanded Detail Card */}
+            <AnimatePresence>
+              {expandedStock && pagedResults && (
+                <div className="mb-3">
+                  <BreakoutDetailCard
+                    stock={pagedResults.find(s => s.symbol === expandedStock) || getAllStocks().find(s => s.symbol === expandedStock)!}
+                    onClose={() => setExpandedStock(null)}
+                  />
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="t-card p-12 text-center">
-              <p className="text-[11px] text-muted-foreground">No stocks match this scan criteria.</p>
-            </div>
-          )}
-        </motion.div>
-      )}
+            </AnimatePresence>
 
+            {pagedResults && pagedResults.length > 0 ? (
+              <div className="t-card-static overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[10px]">
+                    <thead>
+                      <tr className="bg-secondary/20 border-b border-border/40">
+                        <th className="px-3 py-2.5 text-left text-[9px] font-semibold text-muted-foreground w-8">#</th>
+                        {RESULT_COLUMNS.map(col => (
+                          <th key={col.key} onClick={() => handleSort(col.key)}
+                            className={`px-3 py-2.5 text-[9px] font-semibold cursor-pointer select-none transition-colors hover:text-foreground
+                              ${col.align === 'right' ? 'text-right' : 'text-left'}
+                              ${sortKey === col.key ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {col.label} {sortKey === col.key && <span className="text-primary">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedResults.map((stock, idx) => {
+                        const qs = computeQualityScore(stock);
+                        const isExpanded = expandedStock === stock.symbol;
+                        return (
+                          <tr key={stock.symbol}
+                            onClick={() => setExpandedStock(isExpanded ? null : stock.symbol)}
+                            className={`border-b border-border/10 cursor-pointer transition-all duration-150
+                              ${isExpanded ? 'bg-primary/5 shadow-[inset_3px_0_0_hsl(var(--primary))]' : 'hover:bg-secondary/20 hover:shadow-[inset_3px_0_0_hsl(var(--primary)/0.3)]'}`}>
+                            <td className="px-3 py-2.5 text-muted-foreground/60 text-[9px] font-data">{page * PAGE_SIZE + idx + 1}</td>
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <GradeBadge grade={qs.grade} />
+                                <div>
+                                  <Link to={`/stock/${stock.symbol}`} onClick={e => e.stopPropagation()}
+                                    className="font-bold text-foreground text-[11px] hover:text-primary transition-colors">{stock.symbol}</Link>
+                                  <p className="text-[8px] text-muted-foreground/70 hidden sm:block">{stock.sector}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-foreground font-medium font-data">{formatCurrency(stock.ltp)}</td>
+                            <td className="px-3 py-2.5 text-right">
+                              <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-bold font-data
+                                ${stock.change_pct >= 0 ? 'bg-primary/8 text-primary' : 'bg-destructive/8 text-destructive'}`}>
+                                {stock.change_pct >= 0 ? '+' : ''}{formatPercent(stock.change_pct)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground font-data">{formatVolume(stock.volume)}</td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground font-data">{formatMarketCap(stock.market_cap)}</td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground font-data">{stock.pe_ratio && stock.pe_ratio > 0 ? stock.pe_ratio.toFixed(1) : '—'}</td>
+                            <td className="px-3 py-2.5 text-right">
+                              <span className={`font-data ${(stock.roe || 0) >= 15 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                                {stock.roe ? `${stock.roe}%` : '—'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              <span className={`text-[10px] font-black font-data ${qs.total >= 65 ? 'text-primary' : qs.total >= 45 ? 'text-accent' : 'text-muted-foreground'}`}>
+                                {qs.total}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-border/20 bg-secondary/10">
+                    <span className="text-[9px] text-muted-foreground font-data">
+                      Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filteredResults!.length)} of {filteredResults!.length}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+                        className="px-3 py-1.5 rounded-md text-[9px] font-medium bg-card text-muted-foreground border border-border/40 hover:text-foreground disabled:opacity-30 transition-all">
+                        ← Prev
+                      </button>
+                      {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                        const pageNum = totalPages <= 5 ? i : Math.max(0, Math.min(page - 2, totalPages - 5)) + i;
+                        return (
+                          <button key={pageNum} onClick={() => setPage(pageNum)}
+                            className={`w-7 h-7 rounded-md text-[9px] font-bold font-data transition-all
+                              ${page === pageNum ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'}`}>
+                            {pageNum + 1}
+                          </button>
+                        );
+                      })}
+                      <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+                        className="px-3 py-1.5 rounded-md text-[9px] font-medium bg-card text-muted-foreground border border-border/40 hover:text-foreground disabled:opacity-30 transition-all">
+                        Next →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="t-card p-12 text-center">
+                <p className="text-[11px] text-muted-foreground">No stocks match this scan criteria.</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Empty State */}
       {!scanResults && (
-        <div className="t-card p-14 text-center">
-          <div className="text-3xl mb-3">⊕</div>
-          <p className="text-[12px] text-muted-foreground font-medium">Select a scan above to see results</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">{DEFAULT_SCANS.length} pre-built scans across {CATEGORIES.length - 1} categories</p>
-        </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+          className="t-card p-16 text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/3 to-transparent pointer-events-none" />
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-[hsl(var(--terminal-cyan)/0.05)] flex items-center justify-center mx-auto mb-4 border border-primary/10">
+              <span className="text-3xl">⊕</span>
+            </div>
+            <p className="text-sm font-bold text-foreground mb-1">Select a scan to get started</p>
+            <p className="text-[10px] text-muted-foreground max-w-md mx-auto">
+              Choose from {DEFAULT_SCANS.length} pre-built algorithms across {CATEGORIES.length - 1} categories.
+              Each result includes a 7-pillar quality score for actionable insights.
+            </p>
+          </div>
+        </motion.div>
       )}
     </div>
   );
