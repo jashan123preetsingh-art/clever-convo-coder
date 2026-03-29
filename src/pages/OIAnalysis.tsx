@@ -228,7 +228,8 @@ export default function OIAnalysis() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.3)" />
               <XAxis dataKey="strike" tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => formatVolume(v)} />
-              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 10 }}
+              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 10, color: 'hsl(var(--foreground))' }}
+                labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                 formatter={(value: number) => formatVolume(value)} />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground)/0.3)" />
               <Bar dataKey="callChg" name="Call OI Chg" radius={[2, 2, 0, 0]}>
