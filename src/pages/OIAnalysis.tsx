@@ -343,7 +343,7 @@ export default function OIAnalysis() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
           className="t-card p-4">
           <p className="text-[11px] font-bold text-foreground mb-1">IV Skew (Put IV - Call IV)</p>
-          <p className="text-[8px] text-muted-foreground mb-3">Positive = Put premium > Call premium (fear) • Negative = Calls richer</p>
+          <p className="text-[8px] text-muted-foreground mb-3">Positive = Put premium {'>'} Call premium (fear) • Negative = Calls richer</p>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={visibleChain.map(row => ({
               strike: row.strike,
