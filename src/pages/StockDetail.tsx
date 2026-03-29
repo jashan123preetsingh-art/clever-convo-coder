@@ -520,74 +520,7 @@ export default function StockDetail() {
 
         {activeTab === 'fundamentals' && (
           <motion.div key="fundamentals" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-4">
-            {fundamentals ? (
-              <>
-                <div className="t-card p-4">
-                  <SectionTitle icon="💰">Valuation</SectionTitle>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                    <MetricCard label="Trailing P/E" value={fundamentals.pe_ratio?.toFixed(1) || '—'} />
-                    <MetricCard label="Forward P/E" value={fundamentals.forward_pe?.toFixed(1) || '—'} />
-                    <MetricCard label="P/B Ratio" value={fundamentals.pb_ratio?.toFixed(2) || '—'} />
-                    <MetricCard label="PEG Ratio" value={fundamentals.peg_ratio?.toFixed(2) || '—'} />
-                    <MetricCard label="EV/EBITDA" value={fundamentals.enterprise_value && fundamentals.ebitda ? (fundamentals.enterprise_value / fundamentals.ebitda).toFixed(1) : '—'} />
-                    <MetricCard label="Book Value" value={fundamentals.book_value ? `₹${fundamentals.book_value.toFixed(2)}` : '—'} />
-                  </div>
-                </div>
-
-                <div className="t-card p-4">
-                  <SectionTitle icon="📈">Profitability</SectionTitle>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                    <MetricCard label="ROE" value={fundamentals.roe ? `${fundamentals.roe.toFixed(1)}%` : '—'} color={(fundamentals.roe || 0) >= 15 ? 'text-primary' : undefined} />
-                    <MetricCard label="ROA" value={fundamentals.roa ? `${fundamentals.roa.toFixed(1)}%` : '—'} />
-                    <MetricCard label="Profit Margin" value={fundamentals.profit_margins ? `${fundamentals.profit_margins.toFixed(1)}%` : '—'} />
-                    <MetricCard label="Operating Margin" value={fundamentals.operating_margins ? `${fundamentals.operating_margins.toFixed(1)}%` : '—'} />
-                    <MetricCard label="Gross Margin" value={fundamentals.gross_margins ? `${fundamentals.gross_margins.toFixed(1)}%` : '—'} />
-                    <MetricCard label="EPS (TTM)" value={fundamentals.eps_trailing ? `₹${fundamentals.eps_trailing.toFixed(2)}` : '—'} />
-                  </div>
-                </div>
-
-                <div className="t-card p-4">
-                  <SectionTitle icon="🏥">Growth & Health</SectionTitle>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                    <MetricCard label="Revenue Growth" value={fundamentals.revenue_growth ? `${fundamentals.revenue_growth.toFixed(1)}%` : '—'} color={(fundamentals.revenue_growth || 0) > 0 ? 'text-primary' : 'text-destructive'} />
-                    <MetricCard label="Earnings Growth" value={fundamentals.earnings_growth ? `${fundamentals.earnings_growth.toFixed(1)}%` : '—'} color={(fundamentals.earnings_growth || 0) > 0 ? 'text-primary' : 'text-destructive'} />
-                    <MetricCard label="Debt/Equity" value={fundamentals.debt_to_equity?.toFixed(2) || '—'} color={(fundamentals.debt_to_equity || 0) <= 0.5 ? 'text-primary' : (fundamentals.debt_to_equity || 0) > 1.5 ? 'text-destructive' : undefined} />
-                    <MetricCard label="Current Ratio" value={fundamentals.current_ratio?.toFixed(2) || '—'} />
-                    <MetricCard label="Quick Ratio" value={fundamentals.quick_ratio?.toFixed(2) || '—'} />
-                    <MetricCard label="Beta" value={fundamentals.beta?.toFixed(2) || '—'} />
-                  </div>
-                </div>
-
-                {fundamentals.recommendation && (
-                  <div className="t-card p-4">
-                    <SectionTitle icon="🎯">Analyst Consensus</SectionTitle>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <MetricCard label="Recommendation" value={fundamentals.recommendation?.toUpperCase() || '—'}
-                        color={fundamentals.recommendation?.includes('buy') ? 'text-primary' : fundamentals.recommendation?.includes('sell') ? 'text-destructive' : 'text-accent'} />
-                      <MetricCard label="Target Mean" value={formatCurrency(fundamentals.target_mean_price)} />
-                      <MetricCard label="Target Range" value={`${formatCurrency(fundamentals.target_low_price)} – ${formatCurrency(fundamentals.target_high_price)}`} />
-                      <MetricCard label="# Analysts" value={fundamentals.num_analysts?.toString() || '—'} />
-                    </div>
-                  </div>
-                )}
-
-                <div className="t-card p-4">
-                  <SectionTitle icon="💵">Dividends & Cashflow</SectionTitle>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                    <MetricCard label="Dividend Yield" value={fundamentals.dividend_yield ? `${fundamentals.dividend_yield.toFixed(2)}%` : '—'} />
-                    <MetricCard label="Dividend Rate" value={fundamentals.dividend_rate ? `₹${fundamentals.dividend_rate.toFixed(2)}` : '—'} />
-                    <MetricCard label="Free Cashflow" value={fundamentals.free_cashflow ? formatCurrency(fundamentals.free_cashflow, true) : '—'} />
-                    <MetricCard label="Operating CF" value={fundamentals.operating_cashflow ? formatCurrency(fundamentals.operating_cashflow, true) : '—'} />
-                    <MetricCard label="Total Revenue" value={fundamentals.total_revenue ? formatCurrency(fundamentals.total_revenue, true) : '—'} />
-                    <MetricCard label="EBITDA" value={fundamentals.ebitda ? formatCurrency(fundamentals.ebitda, true) : '—'} />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="t-card p-12 text-center">
-                <p className="text-muted-foreground text-sm">{isLoading ? '⏳ Loading fundamentals...' : 'Fundamental data unavailable'}</p>
-              </div>
-            )}
+            <AIFundamentalsPanel symbol={symbol!} quote={quote} technicals={technicals} partialFundamentals={fundamentals} />
           </motion.div>
         )}
 
