@@ -9,11 +9,10 @@ const NAV_ITEMS = [
   { path: '/', label: 'DASHBOARD', shortcut: 'F1', icon: 'DH' },
   { path: '/heatmap', label: 'HEATMAP', shortcut: 'F2', icon: 'HM' },
   { path: '/scanner', label: 'SCANNER', shortcut: 'F3', icon: 'SC' },
-  { path: '/screener', label: 'SCREENER', shortcut: 'F4', icon: 'SR' },
-  { path: '/options', label: 'OPTIONS', shortcut: 'F5', icon: 'OC' },
-  { path: '/sectors', label: 'SECTORS', shortcut: 'F6', icon: 'SE' },
-  { path: '/fii-dii', label: 'FII/DII', shortcut: 'F7', icon: 'FD' },
-  { path: '/news', label: 'NEWS & CAL', shortcut: 'F8', icon: 'NC' },
+  { path: '/options', label: 'OPTIONS', shortcut: 'F4', icon: 'OC' },
+  { path: '/sectors', label: 'SECTORS', shortcut: 'F5', icon: 'SE' },
+  { path: '/fii-dii', label: 'FII/DII', shortcut: 'F6', icon: 'FD' },
+  { path: '/news', label: 'NEWS & CAL', shortcut: 'F7', icon: 'NC' },
 ];
 
 export default function TerminalLayout({ children }: { children: React.ReactNode }) {
