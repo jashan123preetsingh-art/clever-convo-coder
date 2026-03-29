@@ -138,6 +138,9 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* ═══ AI Market Brief ═══ */}
+      <MarketBrief />
+
       {/* ═══ Quick Actions ═══ */}
       <div>
         <p className="text-[10px] text-muted-foreground font-semibold mb-2 uppercase tracking-wider">⚡ Quick Actions <span className="text-muted-foreground/50">— Jump to any tool instantly</span></p>
