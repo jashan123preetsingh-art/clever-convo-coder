@@ -7,6 +7,7 @@ import TerminalLayout from "@/components/TerminalLayout";
 import { useAuth } from "@/hooks/useAuth";
 
 const Auth = lazy(() => import("./pages/Auth"));
+const Landing = lazy(() => import("./pages/Index"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Heatmap = lazy(() => import("./pages/Heatmap"));
 const Scanner = lazy(() => import("./pages/Scanner"));
