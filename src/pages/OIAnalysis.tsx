@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { generateOptionsChain } from '@/data/mockData';
 import { formatNumber, formatVolume } from '@/utils/format';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine, Area, AreaChart, Cell, ScatterChart, Scatter, ZAxis } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine, Area, AreaChart, Cell } from 'recharts';
 
 const SYMBOLS = ['NIFTY', 'BANKNIFTY'] as const;
 
