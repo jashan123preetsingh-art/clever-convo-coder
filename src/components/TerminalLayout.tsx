@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useStore from '@/store/useStore';
 import { INDICES, getAllStocks } from '@/data/mockData';
 import { formatPercent } from '@/utils/format';
 import { useStockSearch } from '@/hooks/useStockData';
+
+const AiAssistant = lazy(() => import('@/components/AiAssistant'));
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', shortcut: 'F1', icon: '⌂' },
