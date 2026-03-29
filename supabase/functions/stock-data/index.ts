@@ -79,7 +79,7 @@ async function getQuote(symbol: string) {
 
 // Get historical chart data
 async function getChart(symbol: string, interval = "1d", range = "1y") {
-  const yfSymbol = symbol.includes(".") ? symbol : `${symbol}.NS`;
+  const yfSymbol = toYahooSymbol(symbol);
   const url = `${YF_BASE}/v8/finance/chart/${yfSymbol}?interval=${interval}&range=${range}&includePrePost=false`;
   const resp = await fetchWithRetry(url);
   const data = await resp.json();
