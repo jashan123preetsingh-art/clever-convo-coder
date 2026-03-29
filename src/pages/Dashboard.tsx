@@ -151,6 +151,7 @@ export default function Dashboard() {
           <QuickAction icon="▦" title="Heatmap" desc="Market overview" to="/heatmap" />
           <QuickAction icon="⇄" title="FII / DII" desc="Institutional flows" to="/fii-dii" />
           <QuickAction icon="◫" title="Sectors" desc="Sector rotation" to="/sectors" />
+          <QuickAction icon="📈" title="OI Analysis" desc="Call/Put OI trends" to="/oi-analysis" />
         </div>
       </div>
 

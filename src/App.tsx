@@ -46,6 +46,7 @@ const App = () => (
               <Route path="/sectors" element={<Sectors />} />
               <Route path="/sectors/:sector" element={<Sectors />} />
               <Route path="/fii-dii" element={<FiiDii />} />
+              <Route path="/oi-analysis" element={<OIAnalysis />} />
               <Route path="/news" element={<News />} />
               <Route path="/stock/:symbol" element={<StockDetail />} />
               {/* Redirect old chart routes to stock detail */}
