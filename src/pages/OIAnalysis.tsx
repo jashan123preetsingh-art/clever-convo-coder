@@ -313,6 +313,163 @@ export default function OIAnalysis() {
           </BarChart>
         </ResponsiveContainer>
       </motion.div>
+
+      {/* ═══ IV Surface ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="t-card p-4">
+          <p className="text-[11px] font-bold text-foreground mb-1">IV Smile — {activeSymbol}</p>
+          <p className="text-[8px] text-muted-foreground mb-3">Implied Volatility across strikes (Call IV vs Put IV)</p>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={visibleChain.map(row => ({
+              strike: row.strike,
+              callIV: row.ce.iv,
+              putIV: row.pe.iv,
+              avgIV: ((row.ce.iv + row.pe.iv) / 2),
+            }))} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.3)" />
+              <XAxis dataKey="strike" tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} unit="%" />
+              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 10 }}
+                formatter={(v: number) => `${v.toFixed(1)}%`} />
+              <ReferenceLine x={chain[atmIdx]?.strike} stroke="hsl(var(--accent))" strokeDasharray="3 3" />
+              <Line type="monotone" dataKey="callIV" name="Call IV" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 2 }} />
+              <Line type="monotone" dataKey="putIV" name="Put IV" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </motion.div>
+
+        {/* IV Skew */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
+          className="t-card p-4">
+          <p className="text-[11px] font-bold text-foreground mb-1">IV Skew (Put IV - Call IV)</p>
+          <p className="text-[8px] text-muted-foreground mb-3">Positive = Put premium > Call premium (fear) • Negative = Calls richer</p>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={visibleChain.map(row => ({
+              strike: row.strike,
+              skew: +(row.pe.iv - row.ce.iv).toFixed(1),
+            }))} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.3)" />
+              <XAxis dataKey="strike" tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} unit="%" />
+              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 10 }} />
+              <ReferenceLine y={0} stroke="hsl(var(--muted-foreground)/0.3)" />
+              <Bar dataKey="skew" name="IV Skew" radius={[2, 2, 0, 0]}>
+                {visibleChain.map((row, idx) => (
+                  <Cell key={idx} fill={row.pe.iv - row.ce.iv >= 0 ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--destructive)/0.5)'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </motion.div>
+      </div>
+
+      {/* ═══ Straddle & Strangle Premium ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+          className="t-card p-4">
+          <p className="text-[11px] font-bold text-foreground mb-1">Straddle Premium by Strike</p>
+          <p className="text-[8px] text-muted-foreground mb-3">CE + PE premium at each strike — ATM straddle shows expected move</p>
+          <ResponsiveContainer width="100%" height={250}>
+            <AreaChart data={visibleChain.map(row => ({
+              strike: row.strike,
+              straddle: +(row.ce.ltp + row.pe.ltp).toFixed(2),
+              callPrem: row.ce.ltp,
+              putPrem: row.pe.ltp,
+            }))} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+              <defs>
+                <linearGradient id="straddleGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.3)" />
+              <XAxis dataKey="strike" tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} />
+              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 10 }}
+                formatter={(v: number) => `₹${v.toFixed(2)}`} />
+              <ReferenceLine x={chain[atmIdx]?.strike} stroke="hsl(var(--accent))" strokeDasharray="3 3"
+                label={{ value: 'ATM', fontSize: 8, fill: 'hsl(var(--accent))' }} />
+              <Area type="monotone" dataKey="straddle" name="Straddle" stroke="hsl(var(--accent))" fill="url(#straddleGrad)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+          {/* ATM Straddle value */}
+          {chain[atmIdx] && (
+            <div className="mt-2 flex items-center gap-4 text-[9px]">
+              <span className="text-muted-foreground">ATM Straddle ({chain[atmIdx].strike}):</span>
+              <span className="font-bold text-accent font-data">₹{(chain[atmIdx].ce.ltp + chain[atmIdx].pe.ltp).toFixed(2)}</span>
+              <span className="text-muted-foreground">Expected Move:</span>
+              <span className="font-bold text-primary font-data">±{((chain[atmIdx].ce.ltp + chain[atmIdx].pe.ltp) / underlyingValue * 100).toFixed(2)}%</span>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Strangle Premium */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
+          className="t-card p-4">
+          <p className="text-[11px] font-bold text-foreground mb-1">Call vs Put Premium</p>
+          <p className="text-[8px] text-muted-foreground mb-3">Individual CE and PE premium across strikes</p>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={visibleChain.map(row => ({
+              strike: row.strike,
+              callPrem: row.ce.ltp,
+              putPrem: row.pe.ltp,
+            }))} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.3)" />
+              <XAxis dataKey="strike" tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} />
+              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 10 }}
+                formatter={(v: number) => `₹${v.toFixed(2)}`} />
+              <ReferenceLine x={chain[atmIdx]?.strike} stroke="hsl(var(--accent))" strokeDasharray="3 3" />
+              <Line type="monotone" dataKey="callPrem" name="Call Premium" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 2 }} />
+              <Line type="monotone" dataKey="putPrem" name="Put Premium" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </motion.div>
+      </div>
+
+      {/* IV Surface 3D-like Heatmap */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+        className="t-card p-4">
+        <p className="text-[11px] font-bold text-foreground mb-1">IV Surface — {activeSymbol}</p>
+        <p className="text-[8px] text-muted-foreground mb-3">Implied Volatility heatmap across strikes — darker = higher IV</p>
+        <div className="overflow-x-auto">
+          <div className="flex gap-px">
+            {visibleChain.map((row, i) => {
+              const avgIV = (row.ce.iv + row.pe.iv) / 2;
+              const maxIV = Math.max(...visibleChain.map(r => (r.ce.iv + r.pe.iv) / 2));
+              const minIV = Math.min(...visibleChain.map(r => (r.ce.iv + r.pe.iv) / 2));
+              const intensity = maxIV > minIV ? (avgIV - minIV) / (maxIV - minIV) : 0.5;
+              const isATM = Math.abs(row.strike - underlyingValue) === Math.min(...visibleChain.map(r => Math.abs(r.strike - underlyingValue)));
+              return (
+                <div key={i} className="flex flex-col items-center gap-1 min-w-[40px]">
+                  <div className="w-8 h-16 rounded-sm flex items-center justify-center relative"
+                    style={{
+                      background: `rgba(168, 85, 247, ${0.1 + intensity * 0.6})`,
+                      border: isATM ? '2px solid hsl(var(--accent))' : '1px solid hsl(var(--border)/0.2)',
+                    }}>
+                    <span className="text-[7px] font-bold text-foreground font-data">{avgIV.toFixed(0)}%</span>
+                  </div>
+                  <span className={`text-[7px] font-data ${isATM ? 'text-accent font-bold' : 'text-muted-foreground'}`}>
+                    {row.strike}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-sm" style={{ background: 'rgba(168, 85, 247, 0.1)' }} />
+              <span className="text-[7px] text-muted-foreground">Low IV</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-sm" style={{ background: 'rgba(168, 85, 247, 0.7)' }} />
+              <span className="text-[7px] text-muted-foreground">High IV</span>
+            </div>
+            <span className="text-[7px] text-accent ml-2">■ = ATM Strike</span>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
