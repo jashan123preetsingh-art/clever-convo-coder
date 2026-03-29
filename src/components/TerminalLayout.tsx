@@ -156,6 +156,14 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Command palette trigger */}
+          <button onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/50 border border-border/40 hover:border-border/60 text-muted-foreground hover:text-foreground transition-all">
+            <span className="text-[9px]">⌘K</span>
+          </button>
+
+          <AlertBell />
+
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${marketOpen ? 'bg-primary animate-pulse' : 'bg-muted-foreground/50'}`} />
             <span className={`text-[9px] md:text-[10px] font-medium ${marketOpen ? 'text-primary' : 'text-muted-foreground'}`}>
