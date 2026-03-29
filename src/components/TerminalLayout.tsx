@@ -209,6 +209,10 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
       {showSearch && searchInput.length >= 1 && (
         <div className="fixed inset-0 z-40" onClick={() => setShowSearch(false)} />
       )}
+
+      <Suspense fallback={null}>
+        <AiAssistant />
+      </Suspense>
     </div>
   );
 }
