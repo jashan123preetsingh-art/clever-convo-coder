@@ -79,14 +79,14 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* ═══ Top Bar ═══ */}
-      <header className="h-11 bg-card/80 glass border-b border-border/60 flex items-center justify-between px-4 flex-shrink-0 z-30">
+      <header className="h-11 bg-card/80 glass border-b border-border/40 flex items-center justify-between px-4 flex-shrink-0 z-30">
         <div className="flex items-center gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-[hsl(var(--terminal-cyan))] flex items-center justify-center shadow-sm glow-primary">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--terminal-cyan))] flex items-center justify-center shadow-sm glow-primary group-hover:shadow-[0_0_20px_hsl(var(--primary)/0.25)] transition-shadow duration-300">
               <span className="text-[9px] font-black text-primary-foreground tracking-tight">SP</span>
             </div>
-            <span className="text-[13px] font-bold text-foreground tracking-wide group-hover:text-primary transition-colors">StockPulse</span>
+            <span className="text-[13px] font-black text-foreground tracking-wide group-hover:text-gradient-primary transition-colors">StockPulse</span>
           </Link>
 
           <div className="w-px h-5 bg-border/50" />
@@ -151,18 +151,18 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
 
       <div className="flex flex-1 overflow-hidden">
         {/* ═══ Sidebar ═══ */}
-        <aside className={`${sidebarOpen ? 'w-44' : 'w-[52px]'} flex-shrink-0 bg-[hsl(var(--sidebar-background))] border-r border-sidebar-border flex flex-col transition-all duration-200`}>
+        <aside className={`${sidebarOpen ? 'w-44' : 'w-[52px]'} flex-shrink-0 bg-[hsl(var(--sidebar-background))] border-r border-sidebar-border/60 flex flex-col transition-all duration-300 ease-out`}>
           <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.path ||
                 (item.path !== '/' && location.pathname.startsWith(item.path));
               return (
                 <Link key={item.path} to={item.path}
-                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[11px] transition-all duration-150 group
+                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[11px] transition-all duration-200 group relative
                     ${isActive
-                      ? 'bg-primary/10 text-primary font-semibold glow-primary'
-                      : 'text-sidebar-foreground hover:text-foreground hover:bg-secondary/50'}`}>
-                  <span className={`w-5 text-center text-[13px] flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                      ? 'bg-primary/10 text-primary font-semibold shadow-[inset_3px_0_0_hsl(var(--primary))] shadow-[0_0_15px_hsl(var(--primary)/0.06)]'
+                      : 'text-sidebar-foreground hover:text-foreground hover:bg-secondary/40'}`}>
+                  <span className={`w-5 text-center text-[13px] flex-shrink-0 transition-all duration-200 ${isActive ? 'text-primary scale-110' : 'text-muted-foreground group-hover:text-foreground group-hover:scale-105'}`}>
                     {item.icon}
                   </span>
                   {sidebarOpen && (

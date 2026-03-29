@@ -53,6 +53,7 @@
     --shadow-depth: 0 8px 32px -8px hsla(0, 0%, 0%, 0.5);
     --shadow-card: 0 1px 3px hsla(0, 0%, 0%, 0.2), 0 4px 12px hsla(0, 0%, 0%, 0.15);
     --shadow-elevated: 0 4px 24px -4px hsla(0, 0%, 0%, 0.4), 0 0 0 1px hsla(225, 15%, 14%, 0.8);
+    --shadow-glow: 0 0 30px -5px hsla(160, 84%, 39%, 0.12);
 
     --sidebar-background: 225 25% 4%;
     --sidebar-foreground: 210 18% 68%;
@@ -111,6 +112,26 @@
     box-shadow: var(--shadow-elevated);
   }
 
+  /* Premium card variant - no hover transform */
+  .t-card-static {
+    @apply bg-card border border-border/50 rounded-lg;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Interactive card with lift effect */
+  .t-card-interactive {
+    @apply bg-card border border-border/40 rounded-lg transition-all duration-300 cursor-pointer;
+    box-shadow: var(--shadow-card);
+  }
+  .t-card-interactive:hover {
+    border-color: hsl(var(--primary) / 0.25);
+    box-shadow: var(--shadow-elevated), var(--shadow-glow);
+    transform: translateY(-1px);
+  }
+  .t-card-interactive:active {
+    transform: translateY(0);
+  }
+
   .t-header {
     @apply text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-semibold mb-2;
     font-family: 'Inter', sans-serif;
@@ -136,8 +157,13 @@
 
   /* Glass effect */
   .glass {
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.5);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  }
+
+  .glass-subtle {
+    backdrop-filter: blur(8px) saturate(1.2);
+    -webkit-backdrop-filter: blur(8px) saturate(1.2);
   }
 
   /* Glow accent on active elements */
@@ -148,9 +174,85 @@
     box-shadow: 0 0 20px hsl(var(--terminal-blue) / 0.12), 0 0 6px hsl(var(--terminal-blue) / 0.08);
   }
 
+  /* Gradient text */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--terminal-cyan)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Shimmer loading */
+  .shimmer {
+    background: linear-gradient(90deg, 
+      hsl(var(--secondary)) 0%, 
+      hsl(var(--muted)) 50%, 
+      hsl(var(--secondary)) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Premium gradient borders */
+  .border-gradient {
+    position: relative;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+  .border-gradient::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--terminal-blue) / 0.1), transparent);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Category accent colors */
+  .cat-breakout { --cat-color: var(--terminal-amber); }
+  .cat-orb { --cat-color: var(--terminal-cyan); }
+  .cat-ema { --cat-color: var(--terminal-blue); }
+  .cat-momentum { --cat-color: var(--terminal-green); }
+  .cat-candle { --cat-color: var(--terminal-purple); }
+  .cat-intraday { --cat-color: var(--terminal-cyan); }
+  .cat-volume { --cat-color: var(--terminal-blue); }
+  .cat-swing { --cat-color: var(--terminal-amber); }
+  .cat-quality { --cat-color: var(--terminal-purple); }
+  .cat-value { --cat-color: var(--terminal-green); }
+  .cat-price { --cat-color: var(--terminal-amber); }
+
   /* Data mono for numbers */
   .font-data {
     font-family: 'JetBrains Mono', monospace;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Smooth pulse for live indicators */
+  .pulse-live {
+    animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Row hover highlight */
+  .row-hover {
+    @apply transition-all duration-150;
+  }
+  .row-hover:hover {
+    background: hsl(var(--secondary) / 0.4);
+    box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.5);
+  }
+
+  /* Stat number animation */
+  .stat-value {
+    @apply font-data font-black tracking-tight;
+    text-shadow: 0 0 20px currentColor;
   }
 }
