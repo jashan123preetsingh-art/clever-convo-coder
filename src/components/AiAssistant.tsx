@@ -318,7 +318,7 @@ export default function AiAssistant() {
                   <div className="text-center space-y-1">
                     <p className="text-[11px] text-muted-foreground">Powered by live market data</p>
                     <p className="text-[13px] font-semibold text-foreground">Stocks, Options, Charts & More</p>
-                    <p className="text-[9px] text-primary/70 font-medium mt-1">📸 Upload any chart screenshot for instant technical analysis</p>
+                    <p className="text-[9px] text-primary/70 font-medium mt-1">📸 Upload or paste (Ctrl+V) any chart for instant technical analysis</p>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 mt-3">
                     {SUGGESTIONS.map((s, i) => (
