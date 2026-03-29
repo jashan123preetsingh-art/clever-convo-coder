@@ -265,14 +265,7 @@ export default function StockDetail() {
       <div className="t-card p-4 overflow-hidden">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="flex gap-0.5 bg-secondary/50 rounded-md p-0.5">
-              {INTERVALS.map(i => (
-                <button key={i.key} onClick={() => setChartInterval(i.key)}
-                  className={`px-2.5 py-1.5 rounded-md text-[10px] font-semibold transition-all ${chartInterval === i.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                  {i.label}
-                </button>
-              ))}
-            </div>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Daily Chart</span>
             <div className="w-px h-4 bg-border/30" />
             <div className="flex gap-0.5 bg-secondary/50 rounded-md p-0.5">
               {RANGES.map(r => (
@@ -282,15 +275,13 @@ export default function StockDetail() {
                 </button>
               ))}
             </div>
-            <div className="w-px h-4 bg-border/30" />
-            <div className="hidden md:flex items-center gap-3 text-[9px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-accent/60 rounded" /> EMA 20</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[hsl(var(--terminal-blue)/0.6)] rounded" /> EMA 50</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-destructive/40 rounded" /> EMA 200</span>
-            </div>
           </div>
           <div className="flex items-center gap-2">
             {chartLoading && <span className="text-[9px] text-accent animate-pulse font-medium">Loading…</span>}
+            <a href={`https://www.tradingview.com/chart/?symbol=NSE:${symbol}`} target="_blank" rel="noopener noreferrer"
+              className="text-[10px] text-muted-foreground hover:text-foreground px-2.5 py-1 rounded-md bg-secondary/50 border border-border/30 transition-all flex items-center gap-1">
+              📊 Advanced Chart ↗
+            </a>
             <button onClick={() => setChartExpanded(!chartExpanded)}
               className="text-[10px] text-muted-foreground hover:text-foreground px-2.5 py-1 rounded-md bg-secondary/50 border border-border/30 transition-all">
               {chartExpanded ? '⊟' : '⊞'}
