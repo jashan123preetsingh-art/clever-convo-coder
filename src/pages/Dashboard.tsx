@@ -103,15 +103,16 @@ export default function Dashboard() {
     <div className="p-4 max-w-[1800px] mx-auto space-y-4">
       {/* ═══ Welcome Banner ═══ */}
       <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-        className="t-card p-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-sm font-bold text-foreground">👋 {greeting}, Trader!</h1>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Your F&O command center — track indices, analyze OI, scan for opportunities, and build strategies. All in one place.
+        className="t-card p-5 flex items-center justify-between relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/3 via-transparent to-[hsl(var(--terminal-cyan)/0.02)] pointer-events-none" />
+        <div className="relative">
+          <h1 className="text-base font-black text-foreground tracking-tight">👋 {greeting}, Trader!</h1>
+          <p className="text-[10px] text-muted-foreground mt-0.5 max-w-xl">
+            Your F&O command center — track indices, analyze OI, scan for opportunities, and build strategies.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link to="/scanner" className="px-3.5 py-2 rounded-lg text-[10px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm glow-primary">
+        <div className="flex items-center gap-2 relative">
+          <Link to="/scanner" className="px-4 py-2 rounded-lg text-[10px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm glow-primary">
             Start Scanning →
           </Link>
         </div>
