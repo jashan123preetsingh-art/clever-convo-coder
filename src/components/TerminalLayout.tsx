@@ -166,6 +166,13 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
 
           <AlertBell />
 
+          {/* Theme toggle */}
+          <button onClick={toggleTheme}
+            className="p-1.5 rounded-md hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors text-sm"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${marketOpen ? 'bg-primary animate-pulse' : 'bg-muted-foreground/50'}`} />
             <span className={`text-[9px] md:text-[10px] font-medium ${marketOpen ? 'text-primary' : 'text-muted-foreground'}`}>
