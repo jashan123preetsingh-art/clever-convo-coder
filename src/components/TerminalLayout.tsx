@@ -5,6 +5,8 @@ import { INDICES, getAllStocks } from '@/data/mockData';
 import { formatPercent } from '@/utils/format';
 import { useStockSearch } from '@/hooks/useStockData';
 import { useAuth } from '@/hooks/useAuth';
+import { AlertBell } from '@/components/PriceAlerts';
+import CommandPalette from '@/components/CommandPalette';
 
 const AiAssistant = lazy(() => import('@/components/AiAssistant'));
 
