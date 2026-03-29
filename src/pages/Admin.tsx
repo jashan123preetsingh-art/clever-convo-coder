@@ -6,7 +6,7 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 export default function Admin() {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading, roleLoading } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'features' | 'users'>('features');
 
