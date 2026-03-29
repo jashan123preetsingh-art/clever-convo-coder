@@ -296,8 +296,9 @@ function SentimentBadge({ sentiment }: { sentiment: 'bullish' | 'bearish' | 'neu
   );
 }
 
-function AgentReportCard({ agentKey, content, accent, delay }: { agentKey: string; content: string; accent: string; delay: number }) {
-  const [expanded, setExpanded] = useState(false);
+function AgentReportCard({ agentKey, content, accent, delay, forceExpand }: { agentKey: string; content: string; accent: string; delay: number; forceExpand?: boolean }) {
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = forceExpand || localExpanded;
   const meta = AGENT_META[agentKey];
   if (!meta) return null;
   const sentiment = detectSentiment(content);
