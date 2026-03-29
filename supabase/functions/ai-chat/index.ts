@@ -65,6 +65,31 @@ serve(async (req) => {
       if (sd.high) liveDataBlock += `• Day Range: ₹${sd.low} – ₹${sd.high}\n`;
       if (sd.week_52_high) liveDataBlock += `• 52W Range: ₹${sd.week_52_low} – ₹${sd.week_52_high}\n`;
       if (sd.volume) liveDataBlock += `• Volume: ${Number(sd.volume).toLocaleString()}\n`;
+
+      if (sd.fundamentals) {
+        const f = sd.fundamentals;
+        liveDataBlock += `\n📚 FUNDAMENTALS:\n`;
+        liveDataBlock += `• P/E: ${f.pe_ratio ?? 'N/A'} | Forward P/E: ${f.forward_pe ?? 'N/A'} | P/B: ${f.pb_ratio ?? 'N/A'}\n`;
+        liveDataBlock += `• ROE: ${f.roe ?? 'N/A'}% | ROA: ${f.roa ?? 'N/A'}% | Debt/Equity: ${f.debt_to_equity ?? 'N/A'}\n`;
+        liveDataBlock += `• Profit Margin: ${f.profit_margins ?? 'N/A'}% | Operating Margin: ${f.operating_margins ?? 'N/A'}%\n`;
+        liveDataBlock += `• Revenue Growth: ${f.revenue_growth ?? 'N/A'}% | Earnings Growth: ${f.earnings_growth ?? 'N/A'}%\n`;
+        liveDataBlock += `• Dividend Yield: ${f.dividend_yield ?? 'N/A'}% | Beta: ${f.beta ?? 'N/A'}\n`;
+        if (f.target_mean_price || f.recommendation) {
+          liveDataBlock += `• Analyst View: ${f.recommendation ?? 'N/A'} | Target Mean: ₹${f.target_mean_price ?? 'N/A'}\n`;
+        }
+      }
+
+      if (sd.technicals) {
+        const t = sd.technicals;
+        liveDataBlock += `\n📊 TECHNICALS:\n`;
+        liveDataBlock += `• RSI(14): ${t.rsi_14 ?? 'N/A'} | MACD: ${t.macd ?? 'N/A'} | ATR: ${t.atr_14 ?? 'N/A'}\n`;
+        liveDataBlock += `• SMA20: ${t.sma_20 ?? 'N/A'} | SMA50: ${t.sma_50 ?? 'N/A'} | SMA200: ${t.sma_200 ?? 'N/A'}\n`;
+        liveDataBlock += `• EMA20: ${t.ema_20 ?? 'N/A'} | EMA50: ${t.ema_50 ?? 'N/A'}\n`;
+        liveDataBlock += `• Trend: ${t.trend ?? 'N/A'} | Strength: ${t.trend_strength ?? 'N/A'} | Volume Ratio: ${t.volume_ratio ?? 'N/A'}x\n`;
+        liveDataBlock += `• Support: ${t.s1 ?? 'N/A'} / ${t.s2 ?? 'N/A'} / ${t.s3 ?? 'N/A'}\n`;
+        liveDataBlock += `• Resistance: ${t.r1 ?? 'N/A'} / ${t.r2 ?? 'N/A'} / ${t.r3 ?? 'N/A'}\n`;
+        if (t.candle_patterns?.length) liveDataBlock += `• Candle Patterns: ${t.candle_patterns.join(', ')}\n`;
+      }
     }
 
     const fullSystem = SYSTEM_PROMPT + liveDataBlock;

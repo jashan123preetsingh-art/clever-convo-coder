@@ -106,11 +106,47 @@ export default function StockDetail() {
   const quote = fullData?.quote || mockStock;
   const technicals = fullData?.technicals;
   const apiFundamentals = fullData?.fundamentals;
-  const hasApiFundamentals = apiFundamentals && Object.values(apiFundamentals).some(v => v !== null && v !== undefined);
-  const fundamentals = hasApiFundamentals ? apiFundamentals : mockStock ? {
-    pe_ratio: mockStock.pe_ratio, market_cap: mockStock.market_cap, roe: mockStock.roe,
-    roce: mockStock.roce, debt_to_equity: mockStock.debt_to_equity, dividend_yield: mockStock.dividend_yield,
-    promoter_holding: (mockStock as any).promoter_holding,
+  const fundamentals = quote || apiFundamentals || mockStock ? {
+    pe_ratio: apiFundamentals?.pe_ratio ?? quote?.pe_ratio ?? mockStock?.pe_ratio ?? null,
+    forward_pe: apiFundamentals?.forward_pe ?? null,
+    pb_ratio: apiFundamentals?.pb_ratio ?? null,
+    peg_ratio: apiFundamentals?.peg_ratio ?? null,
+    market_cap: apiFundamentals?.market_cap ?? quote?.market_cap ?? mockStock?.market_cap ?? null,
+    enterprise_value: apiFundamentals?.enterprise_value ?? null,
+    profit_margins: apiFundamentals?.profit_margins ?? null,
+    operating_margins: apiFundamentals?.operating_margins ?? null,
+    gross_margins: apiFundamentals?.gross_margins ?? null,
+    roe: apiFundamentals?.roe ?? quote?.roe ?? mockStock?.roe ?? null,
+    roa: apiFundamentals?.roa ?? null,
+    revenue_growth: apiFundamentals?.revenue_growth ?? null,
+    earnings_growth: apiFundamentals?.earnings_growth ?? null,
+    debt_to_equity: apiFundamentals?.debt_to_equity ?? quote?.debt_to_equity ?? mockStock?.debt_to_equity ?? null,
+    current_ratio: apiFundamentals?.current_ratio ?? null,
+    quick_ratio: apiFundamentals?.quick_ratio ?? null,
+    ebitda: apiFundamentals?.ebitda ?? null,
+    total_revenue: apiFundamentals?.total_revenue ?? null,
+    free_cashflow: apiFundamentals?.free_cashflow ?? null,
+    operating_cashflow: apiFundamentals?.operating_cashflow ?? null,
+    eps_trailing: apiFundamentals?.eps_trailing ?? null,
+    eps_forward: apiFundamentals?.eps_forward ?? null,
+    beta: apiFundamentals?.beta ?? null,
+    book_value: apiFundamentals?.book_value ?? null,
+    shares_outstanding: apiFundamentals?.shares_outstanding ?? null,
+    dividend_yield: apiFundamentals?.dividend_yield ?? quote?.dividend_yield ?? mockStock?.dividend_yield ?? null,
+    dividend_rate: apiFundamentals?.dividend_rate ?? null,
+    recommendation: apiFundamentals?.recommendation ?? null,
+    target_mean_price: apiFundamentals?.target_mean_price ?? null,
+    target_high_price: apiFundamentals?.target_high_price ?? null,
+    target_low_price: apiFundamentals?.target_low_price ?? null,
+    num_analysts: apiFundamentals?.num_analysts ?? null,
+    week_52_high: apiFundamentals?.week_52_high ?? quote?.week_52_high ?? mockStock?.week_52_high ?? null,
+    week_52_low: apiFundamentals?.week_52_low ?? quote?.week_52_low ?? mockStock?.week_52_low ?? null,
+    fifty_day_avg: apiFundamentals?.fifty_day_avg ?? null,
+    two_hundred_day_avg: apiFundamentals?.two_hundred_day_avg ?? null,
+    avg_volume: apiFundamentals?.avg_volume ?? null,
+    avg_volume_10d: apiFundamentals?.avg_volume_10d ?? quote?.avg_volume_10d ?? mockStock?.avg_volume_10d ?? null,
+    promoter_holding: (apiFundamentals as any)?.promoter_holding ?? (mockStock as any)?.promoter_holding ?? null,
+    roce: (apiFundamentals as any)?.roce ?? (mockStock as any)?.roce ?? null,
   } : null;
   const realChartData = chartData?.length > 0 ? chartData : generateCandleData(symbol || '', 250);
 
