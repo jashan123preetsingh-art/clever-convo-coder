@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFullStockData, useStockChart, useAIAnalysis } from '@/hooks/useStockData';
 import { getStock, generateCandleData } from '@/data/mockData';
 import { formatCurrency, formatPercent, formatVolume, formatMarketCap } from '@/utils/format';
-import useStore from '@/store/useStore';
+import { useWatchlist } from '@/hooks/useWatchlist';
 
 // ─── Shared Components ───
 
