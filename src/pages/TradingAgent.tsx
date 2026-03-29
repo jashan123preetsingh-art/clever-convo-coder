@@ -542,6 +542,7 @@ export default function TradingAgent() {
                         content={content}
                         accent={step.accent}
                         delay={stepIdx * 0.08 + idx * 0.03}
+                        forceExpand={expandAll}
                       />
                     );
                   })}
