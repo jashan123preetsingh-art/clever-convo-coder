@@ -154,7 +154,7 @@ interface ScanPreset {
   name: string;
   description: string;
   icon: string;
-  category: 'breakout' | 'momentum' | 'value' | 'quality' | 'volume' | 'price';
+  category: string;
   conditions: Omit<Condition, 'id'>[];
 }
 
@@ -166,7 +166,7 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 'b2', name: 'Intraday Breakout – New High', description: 'Price crossing today\'s high with volume', icon: '🔥', category: 'breakout',
+  { id: 'b2', name: 'Intraday Breakout – New High', description: 'Price crossing today high with volume', icon: '🔥', category: 'breakout',
     conditions: [
       { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.995 },
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
@@ -182,7 +182,7 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.97 },
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
     ] },
-  { id: 'b5', name: 'Swing Breakout – 52W High', description: 'Making new 52-week highs', icon: '🏔️', category: 'breakout',
+  { id: 'b5', name: '52 Week High Breakout', description: 'Making new 52-week highs today', icon: '🏔️', category: 'breakout',
     conditions: [
       { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 1.0 },
     ] },
@@ -196,6 +196,90 @@ const DEFAULT_SCANS: ScanPreset[] = [
     conditions: [
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 3 },
     ] },
+  { id: 'b8', name: '30 Day Range Breakout', description: 'Price breaking 30-day consolidation range', icon: '📐', category: 'breakout',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.03 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 },
+    ] },
+  { id: 'b9', name: 'BTST – Gap Up Opening', description: 'Buy Today Sell Tomorrow – strong close for gap up', icon: '🎯', category: 'breakout',
+    conditions: [
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.99 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+
+  // ─── ORB (Opening Range Breakout) ───
+  { id: 'orb1', name: '15 Min ORB – Bullish', description: 'Price above 15min opening range high with volume', icon: '⏱️', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.005 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.005 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'orb2', name: '15 Min ORB – Bearish', description: 'Price below 15min opening range low', icon: '⏱️', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.995 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.995 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'orb3', name: '30 Min ORB – Bullish', description: 'Breaking above 30min high with momentum', icon: '🕐', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.008 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.8', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'orb4', name: '30 Min ORB – Bearish', description: 'Breaking below 30min low with selling', icon: '🕐', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.992 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-0.8', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'orb5', name: 'ORB + Volume Breakout', description: 'ORB with 2x+ volume confirmation', icon: '💹', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.01 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+    ] },
+
+  // ─── EMA / MA SCREENS ───
+  { id: 'ema1', name: 'Golden Crossover', description: 'Price > 50 EMA crossing above 200 EMA zone', icon: '✨', category: 'ema',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_low', multiplier: 1.3 },
+    ] },
+  { id: 'ema2', name: 'Death Crossover', description: 'Price below key EMAs – bearish signal', icon: '💀', category: 'ema',
+    conditions: [
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.8 },
+    ] },
+  { id: 'ema3', name: 'EMA 20 > EMA 50 Crossover', description: 'Short-term trend turning bullish', icon: '📊', category: 'ema',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.3', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.003 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.2 },
+    ] },
+  { id: 'ema4', name: 'Price Above All EMAs', description: 'Above 20, 50, 100, 200 EMA – strong uptrend', icon: '🟢', category: 'ema',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_low', multiplier: 1.5 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+    ] },
+  { id: 'ema5', name: 'Price Below All EMAs', description: 'Below all key EMAs – strong downtrend', icon: '🔴', category: 'ema',
+    conditions: [
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.7 },
+    ] },
+  { id: 'ema6', name: 'EMA Bounce (20 EMA Support)', description: 'Price bouncing off 20 EMA support', icon: '↗️', category: 'ema',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'low', multiplier: 1.01 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.2 },
+    ] },
+  { id: 'ema7', name: 'Bullish EMA Stack', description: '20>50>100>200 EMA alignment – momentum', icon: '📈', category: 'ema',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_low', multiplier: 1.4 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0', compareMeasure: '', multiplier: 1 },
+    ] },
 
   // ─── MOMENTUM ───
   { id: 's1', name: 'Top Gainers (>3%)', description: 'Strong bullish momentum today', icon: '🟢', category: 'momentum',
@@ -204,12 +288,98 @@ const DEFAULT_SCANS: ScanPreset[] = [
     conditions: [{ measure: 'change_pct', operator: '<', compareType: 'number', value: '-2', compareMeasure: '', multiplier: 1 }] },
   { id: 's3', name: 'Strong Rally (>5%)', description: 'Stocks surging 5%+', icon: '🔥', category: 'momentum',
     conditions: [{ measure: 'change_pct', operator: '>', compareType: 'number', value: '5', compareMeasure: '', multiplier: 1 }] },
+  { id: 'm4', name: 'Blasting Momentum', description: 'Huge move with massive volume – trending stocks', icon: '💨', category: 'momentum',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '4', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 },
+    ] },
+  { id: 'm5', name: 'Intraday Rockers', description: 'Big intraday range with volume – day traders delight', icon: '🎸', category: 'momentum',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '3', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'm6', name: 'Momentum Stocks', description: 'Consistent upward momentum with volume', icon: '⚡', category: 'momentum',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.0 },
+    ] },
 
   // ─── VOLUME ───
   { id: 's5', name: 'Volume Breakout (2x)', description: 'Double average volume', icon: '📊', category: 'volume',
     conditions: [{ measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 }] },
   { id: 's7', name: 'Low Volume', description: 'Below half of average volume', icon: '🔇', category: 'volume',
     conditions: [{ measure: 'volume', operator: '<', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 0.5 }] },
+  { id: 'v3', name: 'Volume Shockers (5x)', description: 'Exploding volume 5x average – unusual activity', icon: '🌊', category: 'volume',
+    conditions: [{ measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 5 }] },
+  { id: 'v4', name: 'Volume Buzzer', description: 'Rising volume day-over-day with price action', icon: '🔔', category: 'volume',
+    conditions: [
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'v5', name: 'Swing Breakout + Volume', description: 'Breakout with high volume confirmation', icon: '📈', category: 'volume',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 },
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.98 },
+    ] },
+
+  // ─── CANDLESTICK ───
+  { id: 'c1', name: 'Bullish Marubozu', description: 'Strong green candle, close near high – no upper wick', icon: '🟩', category: 'candle',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.995 },
+    ] },
+  { id: 'c2', name: 'Bearish Marubozu', description: 'Strong red candle, close near low – full body', icon: '🟥', category: 'candle',
+    conditions: [
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-2', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '<=', compareType: 'measure', value: '', compareMeasure: 'low', multiplier: 1.005 },
+    ] },
+  { id: 'c3', name: 'Hammer Pattern', description: 'Long lower wick, small body – potential reversal', icon: '🔨', category: 'candle',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.0 },
+      { measure: 'low', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.98 },
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.99 },
+    ] },
+  { id: 'c4', name: 'Shooting Star', description: 'Long upper wick after uptrend – bearish reversal', icon: '⭐', category: 'candle',
+    conditions: [
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.0 },
+      { measure: 'high', operator: '>', compareType: 'measure', value: '', compareMeasure: 'close', multiplier: 1.02 },
+      { measure: 'close', operator: '<=', compareType: 'measure', value: '', compareMeasure: 'low', multiplier: 1.01 },
+    ] },
+  { id: 'c5', name: 'Bullish Engulfing', description: 'Today body fully engulfs yesterday – bullish', icon: '🟢', category: 'candle',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'open', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.01 },
+    ] },
+  { id: 'c6', name: 'Dark Cloud Cover', description: 'Bearish reversal – opened above prev high, closed below midpoint', icon: '🌑', category: 'candle',
+    conditions: [
+      { measure: 'open', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.005 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-1', compareMeasure: '', multiplier: 1 },
+    ] },
+
+  // ─── INTRADAY ───
+  { id: 'i1', name: 'Intraday Breakout + Volume', description: 'Rising price with rising volume intraday', icon: '📈', category: 'intraday',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.005 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'i2', name: 'Intraday Reversal', description: 'Opened down but recovering – potential reversal', icon: '🔄', category: 'intraday',
+    conditions: [
+      { measure: 'open', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.99 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.01 },
+    ] },
+  { id: 'i3', name: 'Narrow Range Day (NR7)', description: 'Smallest range in 7 days – volatility contraction', icon: '◇', category: 'intraday',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'i4', name: 'Wide Range Day', description: 'High intraday range – strong directional move', icon: '↔️', category: 'intraday',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '3', compareMeasure: '', multiplier: 1 },
+    ] },
 
   // ─── QUALITY ───
   { id: 's8', name: 'High ROE (>20%)', description: 'Superior return on equity', icon: '💎', category: 'quality',
@@ -220,35 +390,103 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'roce', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 's10', name: 'Debt Free', description: 'Near-zero debt', icon: '🏦', category: 'quality',
+  { id: 's10', name: 'Debt Free Companies', description: 'Near-zero debt on books', icon: '🏦', category: 'quality',
     conditions: [{ measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.1', compareMeasure: '', multiplier: 1 }] },
-  { id: 's11', name: 'Promoter Conviction', description: 'Promoter holding > 60%', icon: '🛡️', category: 'quality',
+  { id: 's11', name: 'Promoter Conviction (>60%)', description: 'Strong promoter holding', icon: '🛡️', category: 'quality',
     conditions: [{ measure: 'promoter_holding', operator: '>', compareType: 'number', value: '60', compareMeasure: '', multiplier: 1 }] },
+  { id: 'q5', name: 'Negative Working Capital', description: 'Companies with operational efficiency', icon: '💡', category: 'quality',
+    conditions: [
+      { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
+      { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.3', compareMeasure: '', multiplier: 1 },
+    ] },
 
   // ─── VALUE ───
-  { id: 's12', name: 'Low PE Stocks', description: 'P/E under 15', icon: '🏷️', category: 'value',
+  { id: 's12', name: 'Low PE Stocks (<15)', description: 'Value picks with low P/E', icon: '🏷️', category: 'value',
     conditions: [{ measure: 'pe_ratio', operator: '<', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 }] },
-  { id: 's13', name: 'High Dividend', description: 'Yield above 3%', icon: '💰', category: 'value',
+  { id: 's13', name: 'High Dividend (>3%)', description: 'Dividend yield above 3%', icon: '💰', category: 'value',
     conditions: [{ measure: 'dividend_yield', operator: '>', compareType: 'number', value: '3', compareMeasure: '', multiplier: 1 }] },
-  { id: 's14', name: 'Value + Quality', description: 'PE<20, ROE>15, Low Debt', icon: '🎯', category: 'value',
+  { id: 's14', name: 'Value + Quality', description: 'PE<20, ROE>15, Low Debt – best of both', icon: '🎯', category: 'value',
     conditions: [
       { measure: 'pe_ratio', operator: '<', compareType: 'number', value: '20', compareMeasure: '', multiplier: 1 },
       { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
+  { id: 'v6', name: 'Undervalued Near High', description: 'Low PE stocks nearing 52W high – overlooked value', icon: '💎', category: 'value',
+    conditions: [
+      { measure: 'pe_ratio', operator: '<', compareType: 'number', value: '20', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.9 },
+    ] },
+  { id: 'v7', name: 'Potential Multibagger', description: 'Growth + momentum + quality metrics combined', icon: '👑', category: 'value',
+    conditions: [
+      { measure: 'roe', operator: '>', compareType: 'number', value: '18', compareMeasure: '', multiplier: 1 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0', compareMeasure: '', multiplier: 1 },
+      { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'v8', name: 'Mighty Midcap Stocks', description: 'Mid-caps with robust fundamentals and growth', icon: '💪', category: 'value',
+    conditions: [
+      { measure: 'market_cap', operator: '>', compareType: 'number', value: '5000', compareMeasure: '', multiplier: 1 },
+      { measure: 'market_cap', operator: '<', compareType: 'number', value: '50000', compareMeasure: '', multiplier: 1 },
+      { measure: 'roe', operator: '>', compareType: 'number', value: '12', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'v9', name: 'Stellar Smallcap Stocks', description: 'High-performing small-caps with solid fundamentals', icon: '🌟', category: 'value',
+    conditions: [
+      { measure: 'market_cap', operator: '<', compareType: 'number', value: '5000', compareMeasure: '', multiplier: 1 },
+      { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
+      { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+
+  // ─── SWING ───
+  { id: 'sw1', name: 'Swing Trading – Large Cap', description: 'RSI in sweet spot + volume on large caps', icon: '🔄', category: 'swing',
+    conditions: [
+      { measure: 'market_cap', operator: '>', compareType: 'number', value: '20000', compareMeasure: '', multiplier: 1 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+  { id: 'sw2', name: 'Swing Fake and Move Setup', description: 'Stocks faking out then reversing with volume', icon: '🎭', category: 'swing',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.01 },
+      { measure: 'low', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.995 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+  { id: 'sw3', name: 'One Day Holding', description: 'Buy at today low, sell tomorrow for 33-63% potential', icon: '📅', category: 'swing',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'sw4', name: 'Short Term Breakouts', description: 'Stocks breaking out with price above 6-day max', icon: '🚀', category: 'swing',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.02 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'sw5', name: 'Swing High Volume', description: 'Swing stocks with high volume – institutional interest', icon: '🏛️', category: 'swing',
+    conditions: [
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2.5 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'market_cap', operator: '>', compareType: 'number', value: '1000', compareMeasure: '', multiplier: 1 },
+    ] },
 
   // ─── PRICE ───
-  { id: 's16', name: 'Penny Stocks (<₹50)', description: 'Low-price stocks', icon: '🪙', category: 'price',
+  { id: 's16', name: 'Penny Stocks (<₹50)', description: 'Low-price speculative stocks', icon: '🪙', category: 'price',
     conditions: [{ measure: 'close', operator: '<', compareType: 'number', value: '50', compareMeasure: '', multiplier: 1 }] },
-  { id: 's17', name: 'Blue Chips (>₹2000)', description: 'Premium large caps', icon: '💠', category: 'price',
+  { id: 's17', name: 'Blue Chips (>₹2000)', description: 'Premium large cap stocks', icon: '💠', category: 'price',
     conditions: [{ measure: 'close', operator: '>', compareType: 'number', value: '2000', compareMeasure: '', multiplier: 1 }] },
+  { id: 'p3', name: 'Mid-Range (₹100-₹500)', description: 'Affordable mid-range stocks', icon: '🔷', category: 'price',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'number', value: '100', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '<', compareType: 'number', value: '500', compareMeasure: '', multiplier: 1 },
+    ] },
 ];
 
 const CATEGORIES = [
-  { key: 'all', label: 'All', icon: '◎' },
+  { key: 'all', label: 'All Scans', icon: '◎' },
   { key: 'breakout', label: 'Breakouts', icon: '⚡' },
+  { key: 'orb', label: 'ORB', icon: '⏱️' },
+  { key: 'ema', label: 'EMA / MA', icon: '📊' },
   { key: 'momentum', label: 'Momentum', icon: '🟢' },
-  { key: 'volume', label: 'Volume', icon: '📊' },
+  { key: 'candle', label: 'Candlestick', icon: '🕯️' },
+  { key: 'intraday', label: 'Intraday', icon: '📈' },
+  { key: 'volume', label: 'Volume', icon: '🌊' },
+  { key: 'swing', label: 'Swing', icon: '🔄' },
   { key: 'quality', label: 'Quality', icon: '💎' },
   { key: 'value', label: 'Value', icon: '🏷️' },
   { key: 'price', label: 'Price', icon: '🪙' },
