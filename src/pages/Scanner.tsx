@@ -723,13 +723,7 @@ export default function Scanner() {
     setPage(0); setSearch(''); setSortKey('change_pct'); setSortDir('desc'); setExpandedStock(null);
   }, []);
 
-  const runCustomScan = useCallback(() => {
-    const conds = conditions.map(({ id, ...rest }) => rest);
-    setCustomResults(runConditions(conds, logicMode));
-    setHasRunCustom(true); setPage(0); setSearch(''); setExpandedStock(null);
-  }, [conditions, logicMode]);
-
-  const activeResults = tab === 'feeds' ? scanResults : customResults;
+  const activeResults = scanResults;
 
   const sortedResults = useMemo(() => {
     if (!activeResults) return null;
@@ -756,16 +750,6 @@ export default function Scanner() {
     else { setSortKey(key); setSortDir('desc'); }
   }, [sortKey]);
 
-  const addCondition = useCallback(() => {
-    setConditions(prev => [...prev, { id: makeId(), measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 }]);
-  }, []);
-  const removeCondition = useCallback((id: string) => {
-    setConditions(prev => prev.length > 1 ? prev.filter(c => c.id !== id) : prev);
-  }, []);
-  const updateCondition = useCallback((id: string, updates: Partial<Condition>) => {
-    setConditions(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-  }, []);
-
   const exportCSV = useCallback(() => {
     if (!filteredResults) return;
     const header = RESULT_COLUMNS.map(c => c.label).join(',');
@@ -779,173 +763,64 @@ export default function Scanner() {
     URL.revokeObjectURL(url);
   }, [filteredResults]);
 
-  const groups = [...new Set(MEASURES.map(m => m.group))];
-
-  const conditionText = (c: Condition) => {
-    const m = MEASURES.find(x => x.key === c.measure)?.label || c.measure;
-    const op = OPERATORS.find(o => o.key === c.operator)?.label || c.operator;
-    if (c.compareType === 'number') return `${m} ${op} ${c.value}`;
-    const cm = MEASURES.find(x => x.key === c.compareMeasure)?.label || c.compareMeasure;
-    return `${m} ${op} ${c.multiplier !== 1 ? `${c.multiplier}× ` : ''}${cm}`;
-  };
-
-  const showResults = (tab === 'feeds' && scanResults) || (tab === 'custom' && hasRunCustom);
-
   return (
     <div className="p-4 max-w-[1500px] mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-lg font-bold text-foreground">Scanner</h1>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Scan {getAllStocks().length} stocks · {DEFAULT_SCANS.length} algorithms · 7-pillar quality scoring</p>
-        </div>
-        <div className="flex gap-0.5 bg-secondary/50 p-0.5 rounded-lg border border-border/50">
-          <button onClick={() => setTab('feeds')}
-            className={`px-4 py-2 rounded-md text-[10px] font-semibold transition-all ${tab === 'feeds' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            Pre-built Scans
-          </button>
-          <button onClick={() => setTab('custom')}
-            className={`px-4 py-2 rounded-md text-[10px] font-semibold transition-all ${tab === 'custom' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            Custom Builder
-          </button>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Scan {getAllStocks().length} stocks · {DEFAULT_SCANS.length} algorithms · 12 categories · 7-pillar quality scoring</p>
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {tab === 'feeds' ? (
-          <motion.div key="feeds" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-            {/* Categories */}
-            <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
-              {CATEGORIES.map(c => (
-                <button key={c.key} onClick={() => setSelectedCategory(c.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold border whitespace-nowrap transition-all
-                    ${selectedCategory === c.key
-                      ? 'bg-primary/10 text-primary border-primary/30 glow-primary'
-                      : 'bg-card text-muted-foreground border-border/50 hover:text-foreground hover:border-border'}`}>
-                  <span>{c.icon}</span> {c.label}
-                </button>
-              ))}
+      {/* Categories */}
+      <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
+        {CATEGORIES.map(c => {
+          const count = selectedCategory === c.key
+            ? (c.key === 'all' ? DEFAULT_SCANS.length : DEFAULT_SCANS.filter(s => s.category === c.key).length)
+            : (c.key === 'all' ? DEFAULT_SCANS.length : DEFAULT_SCANS.filter(s => s.category === c.key).length);
+          return (
+            <button key={c.key} onClick={() => setSelectedCategory(c.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold border whitespace-nowrap transition-all
+                ${selectedCategory === c.key
+                  ? 'bg-primary/10 text-primary border-primary/30 glow-primary'
+                  : 'bg-card text-muted-foreground border-border/50 hover:text-foreground hover:border-border'}`}>
+              <span>{c.icon}</span> {c.label}
+              <span className="text-[8px] opacity-60">({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Scan Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mb-4">
+        {filteredScans.map(scan => (
+          <motion.button key={scan.id} onClick={() => selectScan(scan)}
+            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+            className={`text-left p-3 rounded-lg border transition-all
+              ${activeScan?.id === scan.id
+                ? 'bg-primary/5 border-primary/30 glow-primary'
+                : 'bg-card border-border/40 hover:border-border/80'}`}>
+            <div className="flex items-start justify-between mb-1">
+              <span className="text-lg">{scan.icon}</span>
+              <span className={`text-[10px] font-bold font-data px-2 py-0.5 rounded-full
+                ${scanCounts[scan.id] > 0 ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'}`}>
+                {scanCounts[scan.id]}
+              </span>
             </div>
-
-            {/* Scan Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mb-4">
-              {filteredScans.map(scan => (
-                <motion.button key={scan.id} onClick={() => selectScan(scan)}
-                  whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                  className={`text-left p-3 rounded-lg border transition-all
-                    ${activeScan?.id === scan.id
-                      ? 'bg-primary/5 border-primary/30 glow-primary'
-                      : 'bg-card border-border/40 hover:border-border/80'}`}>
-                  <div className="flex items-start justify-between mb-1">
-                    <span className="text-lg">{scan.icon}</span>
-                    <span className={`text-[10px] font-bold font-data px-2 py-0.5 rounded-full
-                      ${scanCounts[scan.id] > 0 ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'}`}>
-                      {scanCounts[scan.id]}
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-semibold text-foreground mb-0.5">{scan.name}</p>
-                  <p className="text-[8px] text-muted-foreground leading-relaxed">{scan.description}</p>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div key="custom" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-            <div className="t-card overflow-hidden mb-4">
-              <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-foreground">Build Custom Scan</span>
-                <div className="flex items-center gap-2 text-[10px]">
-                  <span className="text-muted-foreground">Match</span>
-                  <select value={logicMode} onChange={e => setLogicMode(e.target.value as 'all' | 'any')}
-                    className="bg-secondary border border-border rounded-md px-2 py-1 text-[10px] text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-primary/30">
-                    <option value="all">ALL conditions</option>
-                    <option value="any">ANY condition</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="p-4 space-y-2.5">
-                {conditions.map((cond, idx) => (
-                  <div key={cond.id} className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] text-muted-foreground w-5 text-right font-data">{idx + 1}.</span>
-                    <select value={cond.measure} onChange={e => updateCondition(cond.id, { measure: e.target.value })}
-                      className="bg-secondary border border-border rounded-md px-2.5 py-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 min-w-[140px]">
-                      {groups.map(g => (
-                        <optgroup key={g} label={g}>
-                          {MEASURES.filter(m => m.group === g).map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
-                        </optgroup>
-                      ))}
-                    </select>
-                    <select value={cond.operator} onChange={e => updateCondition(cond.id, { operator: e.target.value })}
-                      className="bg-secondary border border-border rounded-md px-2.5 py-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 min-w-[120px]">
-                      {OPERATORS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-                    </select>
-                    <select value={cond.compareType} onChange={e => updateCondition(cond.id, { compareType: e.target.value as 'number' | 'measure' })}
-                      className="bg-secondary border border-border rounded-md px-2 py-1.5 text-[10px] text-foreground focus:outline-none">
-                      <option value="number">Number</option>
-                      <option value="measure">Measure</option>
-                    </select>
-                    {cond.compareType === 'number' ? (
-                      <input type="number" step="any" value={cond.value}
-                        onChange={e => updateCondition(cond.id, { value: e.target.value })}
-                        className="bg-secondary border border-border rounded-md px-2.5 py-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 w-20 font-data" />
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <input type="number" step="any" value={cond.multiplier}
-                          onChange={e => updateCondition(cond.id, { multiplier: parseFloat(e.target.value) || 1 })}
-                          className="bg-secondary border border-border rounded-md px-2 py-1.5 text-[10px] text-foreground focus:outline-none w-14 font-data" />
-                        <span className="text-[10px] text-muted-foreground">×</span>
-                        <select value={cond.compareMeasure} onChange={e => updateCondition(cond.id, { compareMeasure: e.target.value })}
-                          className="bg-secondary border border-border rounded-md px-2.5 py-1.5 text-[10px] text-foreground focus:outline-none min-w-[120px]">
-                          {groups.map(g => (
-                            <optgroup key={g} label={g}>
-                              {MEASURES.filter(m => m.group === g).map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
-                            </optgroup>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                    {conditions.length > 1 && (
-                      <button onClick={() => removeCondition(cond.id)}
-                        className="text-destructive/40 hover:text-destructive text-sm transition-colors ml-1">✕</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="px-4 py-3 border-t border-border/40 flex items-center gap-3">
-                <button onClick={addCondition}
-                  className="w-7 h-7 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center text-sm font-bold">+</button>
-                <button onClick={runCustomScan}
-                  className="px-5 py-2 rounded-md bg-primary text-primary-foreground text-[11px] font-semibold hover:bg-primary/90 transition-all shadow-sm glow-primary">
-                  Run Scan
-                </button>
-                <span className="text-[9px] text-muted-foreground">
-                  {conditions.length} condition{conditions.length > 1 ? 's' : ''} · {getAllStocks().length} stocks
-                </span>
-              </div>
-            </div>
-
-            {hasRunCustom && (
-              <div className="flex gap-1.5 flex-wrap mb-3">
-                {conditions.map(c => (
-                  <span key={c.id} className="px-2 py-0.5 rounded-md text-[9px] bg-primary/8 text-primary border border-primary/15 font-medium">
-                    {conditionText(c)}
-                  </span>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <p className="text-[11px] font-semibold text-foreground mb-0.5">{scan.name}</p>
+            <p className="text-[8px] text-muted-foreground leading-relaxed">{scan.description}</p>
+          </motion.button>
+        ))}
+      </div>
 
       {/* ═══ RESULTS ═══ */}
-      {showResults && (
+      {scanResults && (
         <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="text-[13px] font-bold text-foreground">
-                {tab === 'feeds' && activeScan ? `${activeScan.icon} ${activeScan.name}` : 'Scan Results'}
+                {activeScan ? `${activeScan.icon} ${activeScan.name}` : 'Scan Results'}
               </h2>
               <p className="text-[10px] text-muted-foreground mt-0.5">{filteredResults?.length || 0} stocks matched · Click any row for detailed analysis</p>
             </div>
@@ -1055,11 +930,11 @@ export default function Scanner() {
         </motion.div>
       )}
 
-      {tab === 'feeds' && !scanResults && (
+      {!scanResults && (
         <div className="t-card p-14 text-center">
           <div className="text-3xl mb-3">⊕</div>
           <p className="text-[12px] text-muted-foreground font-medium">Select a scan above to see results</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">or switch to Custom Builder to create your own</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">{DEFAULT_SCANS.length} pre-built scans across {CATEGORIES.length - 1} categories</p>
         </div>
       )}
     </div>
