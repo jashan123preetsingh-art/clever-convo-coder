@@ -111,12 +111,13 @@ async function getChart(symbol: string, interval = "1d", range = "1y") {
   return candles;
 }
 
-// Fundamentals - use v6 quote endpoint (most reliable for Indian stocks)
+// Fundamentals - merge quote + quoteSummary so we don't return sparse data
 async function getFundamentals(symbol: string) {
   const yfSymbol = toYahooSymbol(symbol);
   if (!yfSymbol) return null;
 
-  // Try v6 quote endpoint first - most reliable
+  let quoteFundamentals: Record<string, any> = {};
+
   const resp = await fetchSafe(
     `${YF_BASE}/v6/finance/quote?symbols=${encodeURIComponent(yfSymbol)}`,
     1
@@ -127,7 +128,7 @@ async function getFundamentals(symbol: string) {
       const data = await resp.json();
       const q = data?.quoteResponse?.result?.[0];
       if (q) {
-        return {
+        quoteFundamentals = {
           pe_ratio: q.trailingPE || null,
           forward_pe: q.forwardPE || null,
           pb_ratio: q.priceToBook || null,
@@ -137,18 +138,18 @@ async function getFundamentals(symbol: string) {
           enterprise_value: q.enterpriseValue || null,
           profit_margins: q.profitMargins ? q.profitMargins * 100 : null,
           roe: q.returnOnEquity ? q.returnOnEquity * 100 : null,
-          roa: null,
+          roa: q.returnOnAssets ? q.returnOnAssets * 100 : null,
           revenue_growth: q.revenueGrowth ? q.revenueGrowth * 100 : null,
           earnings_growth: q.earningsQuarterlyGrowth ? q.earningsQuarterlyGrowth * 100 : null,
-          debt_to_equity: null,
-          current_ratio: null,
-          quick_ratio: null,
-          operating_margins: null,
-          gross_margins: null,
+          debt_to_equity: q.debtToEquity ? q.debtToEquity / 100 : null,
+          current_ratio: q.currentRatio || null,
+          quick_ratio: q.quickRatio || null,
+          operating_margins: q.operatingMargins ? q.operatingMargins * 100 : null,
+          gross_margins: q.grossMargins ? q.grossMargins * 100 : null,
           ebitda: q.ebitda || null,
           total_revenue: q.totalRevenue || null,
-          free_cashflow: null,
-          operating_cashflow: null,
+          free_cashflow: q.freeCashflow || null,
+          operating_cashflow: q.operatingCashflow || null,
           eps_trailing: q.trailingEps || null,
           eps_forward: q.epsForward || null,
           beta: q.beta || null,
@@ -171,18 +172,27 @@ async function getFundamentals(symbol: string) {
     } catch {}
   }
 
-  // Fallback: v10 quoteSummary
   const resp2 = await fetchSafe(
     `${YF_BASE}/v10/finance/quoteSummary/${encodeURIComponent(yfSymbol)}?modules=summaryDetail,defaultKeyStatistics,financialData`,
     0
   );
-  if (!resp2) return null;
+
+  if (!resp2) return Object.keys(quoteFundamentals).length ? quoteFundamentals : null;
+
   try {
     const data = await resp2.json();
     const r = data?.quoteSummary?.result?.[0];
-    if (!r) return null;
-    return extractFundamentals(r.summaryDetail, r.defaultKeyStatistics, r.financialData);
-  } catch { return null; }
+    if (!r) return Object.keys(quoteFundamentals).length ? quoteFundamentals : null;
+    const summaryFundamentals = extractFundamentals(r.summaryDetail, r.defaultKeyStatistics, r.financialData);
+
+    const merged = { ...summaryFundamentals, ...quoteFundamentals };
+    for (const [key, value] of Object.entries(summaryFundamentals)) {
+      if (merged[key] == null && value != null) merged[key] = value;
+    }
+    return merged;
+  } catch {
+    return Object.keys(quoteFundamentals).length ? quoteFundamentals : null;
+  }
 }
 
 function getRaw(obj: any): number | null {

@@ -6,13 +6,19 @@ import { stockApi, fiiDiiApi } from '@/lib/api';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
+type LiveContext = {
+  indices: any[];
+  fiiDii: any[];
+  stockData: any | null;
+};
+
 const SUGGESTIONS = [
-  "Analyze Nifty trend with current levels",
-  "Best options strategy for current market?",
+  'Analyze Nifty trend with current levels',
+  'Best options strategy for current market?',
   "What does today's FII/DII data indicate?",
-  "Support/resistance for BankNifty today",
-  "Straddle strategy at current Nifty level",
-  "How to hedge my portfolio right now?",
+  'Support/resistance for BankNifty today',
+  'Straddle strategy at current Nifty level',
+  'How to hedge my portfolio right now?',
 ];
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
@@ -22,25 +28,41 @@ export default function AiAssistant() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [liveData, setLiveData] = useState<{ indices: any[]; fiiDii: any[] }>({ indices: [], fiiDii: [] });
+  const [liveData, setLiveData] = useState<LiveContext>({ indices: [], fiiDii: [], stockData: null });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
 
-  // Fetch live data when chat opens
+  const fetchContextData = useCallback(async () => {
+    try {
+      const path = location.pathname;
+      const parts = path.split('/');
+      const currentStock = parts[1] === 'stock' ? parts[2] : undefined;
+
+      const [indices, fiiDii, stockData] = await Promise.all([
+        stockApi.getIndices().catch(() => []),
+        fiiDiiApi.getData().catch(() => []),
+        currentStock ? stockApi.getFullData(currentStock).catch(() => null) : Promise.resolve(null),
+      ]);
+
+      setLiveData({
+        indices: Array.isArray(indices) ? indices : [],
+        fiiDii: Array.isArray(fiiDii) ? fiiDii : [],
+        stockData: stockData?.quote ? {
+          ...stockData.quote,
+          fundamentals: stockData.fundamentals,
+          technicals: stockData.technicals,
+        } : null,
+      });
+    } catch {
+      setLiveData(prev => ({ ...prev, stockData: null }));
+    }
+  }, [location.pathname]);
+
   useEffect(() => {
     if (!open) return;
-    const fetchLive = async () => {
-      try {
-        const [indices, fiiDii] = await Promise.all([
-          stockApi.getIndices().catch(() => []),
-          fiiDiiApi.getData().catch(() => []),
-        ]);
-        setLiveData({ indices: Array.isArray(indices) ? indices : [], fiiDii: Array.isArray(fiiDii) ? fiiDii : [] });
-      } catch { /* silent */ }
-    };
-    fetchLive();
-  }, [open]);
+    fetchContextData();
+  }, [open, fetchContextData]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -58,6 +80,7 @@ export default function AiAssistant() {
       currentStock: parts[1] === 'stock' ? parts[2] : undefined,
       liveIndices: liveData.indices,
       fiiDii: liveData.fiiDii,
+      stockData: liveData.stockData,
     };
   };
 
@@ -68,6 +91,10 @@ export default function AiAssistant() {
     setMessages(allMessages);
     setInput('');
     setLoading(true);
+
+    if (location.pathname.startsWith('/stock/')) {
+      await fetchContextData();
+    }
 
     let assistantContent = '';
 
@@ -116,11 +143,9 @@ export default function AiAssistant() {
             if (content) {
               assistantContent += content;
               const final = assistantContent;
-              setMessages(prev =>
-                prev.map((m, i) => i === prev.length - 1 ? { ...m, content: final } : m)
-              );
+              setMessages(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, content: final } : m));
             }
-          } catch { /* partial json */ }
+          } catch {}
         }
       }
     } catch (e: any) {
@@ -131,7 +156,7 @@ export default function AiAssistant() {
     } finally {
       setLoading(false);
     }
-  }, [messages, loading, location.pathname, liveData]);
+  }, [messages, loading, location.pathname, fetchContextData, liveData]);
 
   // Live data status indicator
   const hasLiveData = liveData.indices.length > 0;
