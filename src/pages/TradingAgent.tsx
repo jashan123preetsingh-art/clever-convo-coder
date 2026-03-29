@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
-import { Copy, Download, Share2, ChevronDown, Check } from 'lucide-react';
+import { Copy, Download, ChevronDown, Check, Image as ImageIcon, X } from 'lucide-react';
 
 const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
@@ -10,6 +10,7 @@ interface AgentResult {
   symbol: string;
   stockData: any;
   agents: Record<string, string>;
+  hasChartAnalysis?: boolean;
 }
 
 /* ── Agent metadata ─────────────────────────── */
@@ -39,6 +40,34 @@ const AGENT_META: Record<string, { label: string; icon: string }> = {
 
 const FULL_SPAN_AGENTS = new Set(['researchManager', 'traderDecision', 'portfolioManager']);
 
+/* ── Image compression ─────────────────────────── */
+function compressImage(file: File, maxSize = 800): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ── Helpers ─────────────────────────── */
 function extractVerdict(agents: Record<string, string>) {
   const pm = agents.portfolioManager || '';
@@ -47,19 +76,15 @@ function extractVerdict(agents: Record<string, string>) {
   if (upper.includes('STRONG BUY') || (upper.includes('BUY') && !upper.includes('DON\'T BUY'))) action = 'BUY';
   else if (upper.includes('SELL') || upper.includes('SHORT')) action = 'SELL';
 
-  // Extract risk score (look for patterns like "risk: 7/10" or "risk score: 6")
   let riskScore = 5;
   const riskMatch = pm.match(/risk[:\s]*(?:score[:\s]*)?\s*(\d+)\s*(?:\/\s*10)?/i);
   if (riskMatch) riskScore = Math.min(10, Math.max(1, parseInt(riskMatch[1])));
 
-  // Extract confidence
   let confidence = 70;
   const confMatch = pm.match(/confidence[:\s]*(\d+)\s*%?/i);
   if (confMatch) confidence = Math.min(100, Math.max(0, parseInt(confMatch[1])));
 
-  // First sentence summary
   const summary = pm.split(/[.\n]/)[0]?.trim() || 'Analysis complete.';
-
   return { action, riskScore, confidence, summary };
 }
 
@@ -91,7 +116,6 @@ function RiskGauge({ score }: { score: number }) {
   const circumference = 2 * Math.PI * radius;
   const progress = (score / 10) * circumference;
   const color = score <= 3 ? 'hsl(var(--primary))' : score <= 6 ? 'hsl(var(--terminal-amber))' : 'hsl(var(--destructive))';
-
   return (
     <div className="relative w-20 h-20">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
@@ -108,7 +132,7 @@ function RiskGauge({ score }: { score: number }) {
   );
 }
 
-function VerdictCard({ agents, stockData, symbol }: { agents: Record<string, string>; stockData: any; symbol: string }) {
+function VerdictCard({ agents, stockData, symbol, hasChartAnalysis }: { agents: Record<string, string>; stockData: any; symbol: string; hasChartAnalysis?: boolean }) {
   const { action, riskScore, confidence, summary } = useMemo(() => extractVerdict(agents), [agents]);
   const [copied, setCopied] = useState(false);
 
@@ -130,7 +154,9 @@ function VerdictCard({ agents, stockData, symbol }: { agents: Record<string, str
   const downloadReport = () => {
     let report = `# TradingAgents Report: ${symbol}\n\n`;
     report += `**Date:** ${new Date().toLocaleDateString('en-IN')}\n`;
-    report += `**Verdict:** ${action} | Risk: ${riskScore}/10 | Confidence: ${confidence}%\n\n`;
+    report += `**Verdict:** ${action} | Risk: ${riskScore}/10 | Confidence: ${confidence}%\n`;
+    if (hasChartAnalysis) report += `**Chart Analysis:** Included (user-uploaded chart)\n`;
+    report += '\n';
     AGENT_STEPS.forEach(step => {
       report += `---\n## ${step.icon} ${step.label}\n\n`;
       step.agents.forEach(ak => {
@@ -151,19 +177,21 @@ function VerdictCard({ agents, stockData, symbol }: { agents: Record<string, str
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-      className={`t-card p-5 ${ac.border} border ${ac.glow} relative overflow-hidden`}>
-      {/* Subtle gradient overlay */}
+      className={`rounded-2xl bg-card/50 p-5 ${ac.border} border ${ac.glow} relative overflow-hidden`}>
       <div className="absolute inset-0 opacity-5 pointer-events-none"
         style={{ background: `radial-gradient(ellipse at top right, ${action === 'BUY' ? 'hsl(var(--primary))' : action === 'SELL' ? 'hsl(var(--destructive))' : 'hsl(var(--terminal-amber))'}, transparent 70%)` }} />
-
       <div className="relative flex flex-col md:flex-row items-start md:items-center gap-4">
-        {/* Left: Symbol + price */}
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <h2 className="text-xl font-black text-foreground font-data tracking-tight">{symbol}</h2>
-            <span className={`px-3 py-1 rounded-md text-sm font-black ${ac.bg} ${ac.text} border ${ac.border}`}>
+            <span className={`px-3 py-1 rounded-lg text-sm font-black ${ac.bg} ${ac.text} border ${ac.border}`}>
               {action}
             </span>
+            {hasChartAnalysis && (
+              <span className="text-[8px] px-2 py-0.5 rounded-lg bg-[hsl(var(--terminal-cyan))]/10 text-[hsl(var(--terminal-cyan))] font-bold border border-[hsl(var(--terminal-cyan))]/20 flex items-center gap-1">
+                📸 Chart Analyzed
+              </span>
+            )}
           </div>
           {stockData && (
             <div className="flex items-baseline gap-3 mb-2">
@@ -175,11 +203,7 @@ function VerdictCard({ agents, stockData, symbol }: { agents: Record<string, str
           )}
           <p className="text-xs text-muted-foreground leading-relaxed max-w-lg">{summary}</p>
         </div>
-
-        {/* Center: Risk gauge */}
         <RiskGauge score={riskScore} />
-
-        {/* Right: Confidence + actions */}
         <div className="flex flex-col items-end gap-3 min-w-[140px]">
           <div className="w-full">
             <div className="flex justify-between text-[9px] text-muted-foreground mb-1">
@@ -210,7 +234,6 @@ function VerdictCard({ agents, stockData, symbol }: { agents: Record<string, str
 function AgentFlowTimeline({ currentStep, loading }: { currentStep: number; loading: boolean }) {
   return (
     <div className="mb-5">
-      {/* Desktop: horizontal flow */}
       <div className="hidden md:flex items-center justify-between gap-1">
         {AGENT_STEPS.map((step, i) => {
           const isDone = i < currentStep || currentStep >= 6;
@@ -221,7 +244,7 @@ function AgentFlowTimeline({ currentStep, loading }: { currentStep: number; load
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: i * 0.08 }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-500 ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-500 ${
                   isDone ? 'bg-primary/10 border-primary/30 flow-node-done' :
                   isActive ? 'bg-[hsl(var(--terminal-amber))]/10 border-[hsl(var(--terminal-amber))]/40 flow-node-pulse' :
                   'bg-secondary/40 border-border/30 opacity-40'
@@ -245,8 +268,6 @@ function AgentFlowTimeline({ currentStep, loading }: { currentStep: number; load
           );
         })}
       </div>
-
-      {/* Mobile: vertical timeline */}
       <div className="md:hidden space-y-0">
         {AGENT_STEPS.map((step, i) => {
           const isDone = i < currentStep || currentStep >= 6;
@@ -309,12 +330,11 @@ function AgentReportCard({ agentKey, content, accent, delay, forceExpand }: { ag
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: 'spring', stiffness: 300, damping: 30 }}
-      className={`t-card overflow-hidden ${accent} ${isFullSpan ? 'md:col-span-2 lg:col-span-3' : ''}`}
-      style={{ background: 'linear-gradient(135deg, hsl(var(--card)), hsl(var(--card)) 80%, hsl(var(--secondary) / 0.3))' }}
+      className={`rounded-2xl bg-card/50 border border-border/20 overflow-hidden ${accent} ${isFullSpan ? 'md:col-span-2 lg:col-span-3' : ''}`}
     >
       <button
         onClick={() => setLocalExpanded(!localExpanded)}
-        className="w-full flex items-center justify-between p-3 hover:bg-secondary/20 transition-colors text-left group"
+        className="w-full flex items-center justify-between p-3 hover:bg-primary/3 transition-colors text-left group"
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <span className="text-lg group-hover:scale-110 transition-transform">{meta.icon}</span>
@@ -360,8 +380,7 @@ function EmptyState({ onSelectSymbol }: { onSelectSymbol: (s: string) => void })
   ];
 
   return (
-    <div className="t-card p-6 md:p-10 text-center relative overflow-hidden">
-      {/* Animated network background */}
+    <div className="rounded-2xl bg-card/40 border border-border/15 p-6 md:p-10 text-center relative overflow-hidden">
       <div className="relative h-40 md:h-48 mb-6">
         <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 100 100">
           <line x1="15" y1="20" x2="55" y2="10" stroke="hsl(var(--primary))" strokeWidth="0.3" />
@@ -373,11 +392,11 @@ function EmptyState({ onSelectSymbol }: { onSelectSymbol: (s: string) => void })
           <line x1="30" y1="55" x2="50" y2="80" stroke="hsl(var(--primary))" strokeWidth="0.3" />
           <line x1="65" y1="50" x2="50" y2="80" stroke="hsl(var(--primary))" strokeWidth="0.3" />
         </svg>
-        {nodes.map((n, i) => (
+        {nodes.map((n) => (
           <div key={n.title}
             className="absolute float-node"
             style={{ left: `${n.x}%`, top: `${n.y}%`, transform: 'translate(-50%, -50%)' }}>
-            <div className="bg-card border border-border/50 rounded-lg p-2 text-center shadow-lg">
+            <div className="bg-card border border-border/40 rounded-xl p-2 text-center shadow-lg">
               <span className="text-lg block">{n.icon}</span>
               <p className="text-[8px] font-semibold text-foreground mt-0.5">{n.title}</p>
             </div>
@@ -386,15 +405,18 @@ function EmptyState({ onSelectSymbol }: { onSelectSymbol: (s: string) => void })
       </div>
 
       <h2 className="text-sm font-bold text-foreground mb-2">TradingAgents Multi-Agent Framework</h2>
-      <p className="text-[10px] text-muted-foreground max-w-md mx-auto mb-5 leading-relaxed">
+      <p className="text-[10px] text-muted-foreground max-w-md mx-auto mb-2 leading-relaxed">
         Enter a stock symbol to run the full 12-agent pipeline.
         Analysts evaluate → researchers debate → manager judges → trader decides → risk analysts deliberate → portfolio manager approves.
+      </p>
+      <p className="text-[9px] text-primary/70 font-medium mb-5">
+        📸 Upload or paste a chart screenshot for visual technical analysis
       </p>
 
       <div className="flex flex-wrap justify-center gap-2 max-w-lg mx-auto">
         {['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'TATAMOTORS'].map(s => (
           <button key={s} onClick={() => onSelectSymbol(s)}
-            className="px-3 py-1.5 text-[10px] font-semibold bg-secondary/60 border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all hover-scale">
+            className="px-3 py-1.5 text-[10px] font-semibold bg-secondary/50 border border-border/30 rounded-xl text-muted-foreground hover:text-foreground hover:border-primary/20 hover:bg-primary/5 transition-all">
             {s}
           </button>
         ))}
@@ -410,6 +432,53 @@ export default function TradingAgent() {
   const [currentStep, setCurrentStep] = useState(-1);
   const [result, setResult] = useState<AgentResult | null>(null);
   const [expandAll, setExpandAll] = useState(false);
+  const [chartImage, setChartImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Handle image upload
+  const handleImageFile = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    try {
+      const compressed = await compressImage(file);
+      setChartImage(compressed);
+      toast.success('Chart image attached!');
+    } catch {
+      toast.error('Failed to process image');
+    }
+  }, []);
+
+  // Paste handler
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) await handleImageFile(file);
+          break;
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handleImageFile]);
+
+  // Drag and drop
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = () => setIsDragging(false);
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) await handleImageFile(file);
+  };
 
   const runAgent = async () => {
     if (!symbol.trim()) { toast.error('Enter a stock symbol'); return; }
@@ -433,7 +502,10 @@ export default function TradingAgent() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ symbol: symbol.toUpperCase().trim() }),
+        body: JSON.stringify({
+          symbol: symbol.toUpperCase().trim(),
+          chartImage: chartImage || undefined,
+        }),
       });
 
       clearInterval(stepTimer);
@@ -446,7 +518,7 @@ export default function TradingAgent() {
       const data = await resp.json();
       setResult(data);
       setCurrentStep(6);
-      toast.success(`TradingAgents analysis complete for ${data.symbol}`);
+      toast.success(`TradingAgents analysis complete for ${data.symbol}${data.hasChartAnalysis ? ' (with chart analysis)' : ''}`);
     } catch (err: any) {
       toast.error(err.message || 'Agent failed');
       setCurrentStep(-1);
@@ -456,21 +528,40 @@ export default function TradingAgent() {
   };
 
   return (
-    <div className="p-3 md:p-6 max-w-[1400px] mx-auto">
+    <div className="p-3 md:p-6 max-w-[1400px] mx-auto"
+      ref={dropZoneRef}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}>
+
+      {/* Drag overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+            <div className="rounded-3xl border-2 border-dashed border-primary/40 bg-primary/5 p-16 text-center">
+              <ImageIcon className="w-12 h-12 text-primary mx-auto mb-4" />
+              <p className="text-lg font-bold text-foreground">Drop chart image here</p>
+              <p className="text-sm text-muted-foreground mt-1">The Market Analyst will analyze your chart visually</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xl">🤖</span>
           <h1 className="text-base md:text-lg font-black text-foreground tracking-wide">TRADING AGENTS</h1>
-          <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold border border-primary/20">TradingAgents Framework</span>
+          <span className="text-[8px] px-2 py-0.5 rounded-lg bg-primary/10 text-primary font-bold border border-primary/20">TradingAgents Framework</span>
         </div>
         <p className="text-[10px] md:text-xs text-muted-foreground">
-          Multi-agent LLM framework — 12 specialized agents collaborate to analyze stocks
+          Multi-agent LLM framework — 12 specialized agents collaborate to analyze stocks. Upload a chart for visual analysis.
         </p>
       </div>
 
       {/* Input */}
-      <div className="t-card p-4 mb-4">
+      <div className="rounded-2xl bg-card/50 border border-border/15 p-4 mb-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <label className="block text-[10px] text-muted-foreground font-semibold mb-1.5 uppercase tracking-wider">Stock Symbol</label>
@@ -480,31 +571,73 @@ export default function TradingAgent() {
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && runAgent()}
               placeholder="e.g. RELIANCE, TCS, INFY"
-              className="w-full bg-secondary/60 border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 font-data"
+              className="w-full bg-secondary/40 border border-border/30 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/30 font-data transition-colors"
               disabled={loading}
             />
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
+            <input type="file" ref={fileInputRef} accept="image/*" className="hidden"
+              onChange={async (e) => { const f = e.target.files?.[0]; if (f) await handleImageFile(f); if (fileInputRef.current) fileInputRef.current.value = ''; }} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              className={`px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all flex items-center gap-2 ${
+                chartImage
+                  ? 'bg-[hsl(var(--terminal-cyan))]/10 border-[hsl(var(--terminal-cyan))]/30 text-[hsl(var(--terminal-cyan))]'
+                  : 'bg-secondary/30 border-border/30 text-muted-foreground hover:text-foreground hover:border-border/50'
+              } disabled:opacity-50`}
+              title="Upload chart image (or Ctrl+V to paste)"
+            >
+              <ImageIcon className="w-4 h-4" />
+              {chartImage ? '📸' : '📷'}
+            </button>
             <button
               onClick={runAgent}
               disabled={loading || !symbol.trim()}
-              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-primary to-[hsl(var(--terminal-cyan))] text-primary-foreground rounded-lg text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
+              className="px-6 py-2.5 bg-gradient-to-r from-primary to-[hsl(var(--terminal-cyan))] text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Running Agents...
+                  Running...
                 </span>
-              ) : '🚀 Run TradingAgents'}
+              ) : '🚀 Run Agents'}
             </button>
           </div>
         </div>
 
-        {!loading && !result && (
+        {/* Chart image preview */}
+        {chartImage && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+            className="mt-3 flex items-start gap-3 p-3 rounded-xl bg-[hsl(var(--terminal-cyan))]/5 border border-[hsl(var(--terminal-cyan))]/15">
+            <div className="relative w-24 h-16 rounded-lg overflow-hidden border border-border/30 flex-shrink-0">
+              <img src={chartImage} alt="Uploaded chart" className="w-full h-full object-cover" />
+              <button onClick={() => setChartImage(null)}
+                className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] font-bold shadow-sm hover:scale-110 transition-transform">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold text-foreground">📸 Chart attached for visual analysis</p>
+              <p className="text-[9px] text-muted-foreground mt-0.5">
+                The Market/Technical Analyst will analyze chart patterns, candlesticks, support/resistance, and indicator readings from your screenshot.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Paste hint */}
+        {!chartImage && !loading && (
+          <p className="text-[9px] text-muted-foreground/50 mt-2 text-center">
+            💡 Tip: Paste a chart screenshot with <kbd className="text-[8px] bg-secondary/60 px-1.5 py-0.5 rounded border border-border/30 font-mono">Ctrl+V</kbd> or drag & drop for visual analysis
+          </p>
+        )}
+
+        {!loading && !result && !chartImage && (
           <div className="flex flex-wrap gap-1.5 mt-3">
             {['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'ADANIENT'].map(s => (
               <button key={s} onClick={() => setSymbol(s)}
-                className="px-2 py-1 text-[9px] bg-secondary/60 border border-border/50 rounded text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all">
+                className="px-2 py-1 text-[9px] bg-secondary/40 border border-border/20 rounded-lg text-muted-foreground hover:text-foreground hover:border-primary/20 transition-all">
                 {s}
               </button>
             ))}
@@ -521,10 +654,8 @@ export default function TradingAgent() {
       <AnimatePresence>
         {result && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            {/* Verdict Card */}
-            <VerdictCard agents={result.agents} stockData={result.stockData} symbol={result.symbol} />
+            <VerdictCard agents={result.agents} stockData={result.stockData} symbol={result.symbol} hasChartAnalysis={result.hasChartAnalysis} />
 
-            {/* Agent Reports grouped by step */}
             {AGENT_STEPS.map((step, stepIdx) => (
               <div key={step.key}>
                 <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -550,7 +681,6 @@ export default function TradingAgent() {
               </div>
             ))}
 
-            {/* Expand/Collapse All */}
             <div className="flex justify-center pt-2">
               <button
                 onClick={() => setExpandAll(!expandAll)}
@@ -563,7 +693,6 @@ export default function TradingAgent() {
         )}
       </AnimatePresence>
 
-      {/* Empty state */}
       {!loading && !result && (
         <EmptyState onSelectSymbol={setSymbol} />
       )}
