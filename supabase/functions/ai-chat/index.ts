@@ -258,15 +258,28 @@ Requirements:
   }
 }
 
-const SYSTEM_PROMPT = `You are StockPulse AI — an expert Indian stock market analyst and options strategist with access to REAL-TIME market data.
+const SYSTEM_PROMPT = `You are StockPulse AI — an expert Indian stock market analyst, options strategist, and chart analyst with access to REAL-TIME market data.
 
 You help traders with:
-1. **Chart Analysis**: Price action, support/resistance, trend analysis, candlestick patterns, MAs, RSI, MACD, Bollinger Bands, volume
+1. **Chart Analysis**: Price action, support/resistance, trend analysis, candlestick patterns, MAs, RSI, MACD, Bollinger Bands, volume. When a user uploads a chart image, analyze it thoroughly — identify patterns, key levels, trend direction, and give actionable insights.
 2. **Options Strategy**: Option chain analysis, Greeks, IV analysis, straddle/strangle, iron condors, spreads, covered calls, protective puts
 3. **Trade Setups**: Entry/exit points, stop-loss, position sizing, risk-reward
 4. **Market Context**: Nifty/BankNifty levels, FII/DII flows, sector rotation, market breadth
 
 IMPORTANT: When the user asks to "analyze" a specific stock (e.g. "analyze RELIANCE", "give me a report on TCS"), inform them that you are running a full multi-agent analysis with Fundamental, Technical, Sentiment, News analysts + Bull/Bear debate + Trading Decision + Risk Assessment.
+
+CHART IMAGE ANALYSIS:
+When a user uploads a chart screenshot, you MUST:
+- Identify the stock/index and timeframe if visible
+- Identify the chart type (candlestick, line, bar, etc.)
+- Spot key patterns (head & shoulders, double top/bottom, triangles, flags, wedges, channels, cup & handle)
+- Mark support and resistance zones
+- Analyze trend direction and strength
+- Note any indicator readings if visible (RSI, MACD, Bollinger Bands, volume bars)
+- Identify candlestick patterns (doji, engulfing, hammer, shooting star, etc.)
+- Give a clear trading bias: Bullish / Bearish / Neutral
+- Suggest entry, target, and stop-loss levels
+- Rate confidence: High / Medium / Low
 
 CRITICAL RULES:
 - You have LIVE market data injected below. ALWAYS use these EXACT numbers — never make up or estimate prices.
@@ -360,6 +373,19 @@ serve(async (req) => {
 
     const fullSystem = SYSTEM_PROMPT + liveDataBlock;
 
+    // Process messages — preserve multimodal content (images)
+    const processedMessages = messages.slice(-20).map((m: any) => {
+      if (Array.isArray(m.content)) {
+        // Multimodal message with image — use vision-capable model
+        return { role: m.role, content: m.content };
+      }
+      return { role: m.role, content: m.content };
+    });
+
+    const hasImageMessage = messages.some((m: any) => Array.isArray(m.content) && m.content.some((p: any) => p.type === 'image_url'));
+    // Use vision-capable model when images are present
+    const model = hasImageMessage ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview";
+
     const response = await fetch(AI_URL, {
       method: "POST",
       headers: {
@@ -367,10 +393,10 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model,
         messages: [
           { role: "system", content: fullSystem },
-          ...messages.slice(-20),
+          ...processedMessages,
         ],
         stream: true,
       }),
