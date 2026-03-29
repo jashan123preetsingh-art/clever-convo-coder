@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { stockApi, fiiDiiApi } from '@/lib/api';
 
-type Message = { role: 'user' | 'assistant'; content: string };
+type MessageContent = string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
+type Message = { role: 'user' | 'assistant'; content: MessageContent; imagePreview?: string };
 
 type LiveContext = {
   indices: any[];
@@ -18,7 +19,7 @@ const SUGGESTIONS = [
   'Best options strategy for current market?',
   "What does today's FII/DII data indicate?",
   'Support/resistance for BankNifty today',
-  'How to hedge my portfolio right now?',
+  '📸 Upload a chart for analysis',
 ];
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
@@ -28,26 +29,54 @@ const FRIENDLY_RATE_LIMIT_MESSAGE = '⚠️ StockPulse AI is busy right now. Ple
 const normalizeAssistantError = (message?: string) => {
   const rawMessage = message?.trim() || 'Something went wrong. Please try again.';
   const normalized = rawMessage.toLowerCase();
-
-  if (normalized.includes('429') || normalized.includes('rate_limited') || normalized.includes('rate limit')) {
-    return FRIENDLY_RATE_LIMIT_MESSAGE;
-  }
-
-  if (normalized.includes('402') || normalized.includes('credits exhausted')) {
-    return '⚠️ AI is temporarily unavailable right now. Please try again later.';
-  }
-
+  if (normalized.includes('429') || normalized.includes('rate_limited') || normalized.includes('rate limit')) return FRIENDLY_RATE_LIMIT_MESSAGE;
+  if (normalized.includes('402') || normalized.includes('credits exhausted')) return '⚠️ AI is temporarily unavailable right now. Please try again later.';
   return `⚠️ ${rawMessage}`;
 };
+
+function getDisplayContent(content: MessageContent): string {
+  if (typeof content === 'string') return content;
+  const textPart = content.find(p => p.type === 'text');
+  return textPart && 'text' in textPart ? textPart.text : '';
+}
+
+function compressImage(file: File, maxSize = 800): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function AiAssistant() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [liveData, setLiveData] = useState<LiveContext>({ indices: [], fiiDii: [], stockData: null });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
 
   const fetchContextData = useCallback(async () => {
@@ -55,39 +84,24 @@ export default function AiAssistant() {
       const path = location.pathname;
       const parts = path.split('/');
       const currentStock = parts[1] === 'stock' ? parts[2] : undefined;
-
       const [indices, fiiDii, stockData] = await Promise.all([
         stockApi.getIndices().catch(() => []),
         fiiDiiApi.getData().catch(() => []),
         currentStock ? stockApi.getFullData(currentStock).catch(() => null) : Promise.resolve(null),
       ]);
-
       setLiveData({
         indices: Array.isArray(indices) ? indices : [],
         fiiDii: Array.isArray(fiiDii) ? fiiDii : [],
-        stockData: stockData?.quote ? {
-          ...stockData.quote,
-          fundamentals: stockData.fundamentals,
-          technicals: stockData.technicals,
-        } : null,
+        stockData: stockData?.quote ? { ...stockData.quote, fundamentals: stockData.fundamentals, technicals: stockData.technicals } : null,
       });
     } catch {
       setLiveData(prev => ({ ...prev, stockData: null }));
     }
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (!open) return;
-    fetchContextData();
-  }, [open, fetchContextData]);
-
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, open]);
-
-  useEffect(() => {
-    if (open && inputRef.current) inputRef.current.focus();
-  }, [open]);
+  useEffect(() => { if (open) fetchContextData(); }, [open, fetchContextData]);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages, open]);
+  useEffect(() => { if (open && inputRef.current) inputRef.current.focus(); }, [open]);
 
   const getContext = () => {
     const path = location.pathname;
@@ -101,17 +115,47 @@ export default function AiAssistant() {
     };
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    try {
+      const compressed = await compressImage(file);
+      setPendingImage(compressed);
+      if (inputRef.current) inputRef.current.focus();
+    } catch (err) {
+      console.error('Image compression error:', err);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || loading) return;
-    const userMsg: Message = { role: 'user', content: text.trim() };
+    if ((!text.trim() && !pendingImage) || loading) return;
+
+    const hasImage = !!pendingImage;
+    const userText = text.trim() || (hasImage ? 'Analyze this chart' : '');
+
+    let userContent: MessageContent;
+    let imagePreview: string | undefined;
+
+    if (hasImage) {
+      userContent = [
+        { type: 'text', text: userText },
+        { type: 'image_url', image_url: { url: pendingImage! } },
+      ];
+      imagePreview = pendingImage!;
+    } else {
+      userContent = userText;
+    }
+
+    const userMsg: Message = { role: 'user', content: userContent, imagePreview };
     const allMessages = [...messages, userMsg];
     setMessages(allMessages);
     setInput('');
+    setPendingImage(null);
     setLoading(true);
 
-    if (location.pathname.startsWith('/stock/')) {
-      await fetchContextData();
-    }
+    if (location.pathname.startsWith('/stock/')) await fetchContextData();
 
     let assistantContent = '';
 
@@ -132,7 +176,6 @@ export default function AiAssistant() {
         const err = await resp.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(err.error || `Error ${resp.status}`);
       }
-
       if (!resp.body) throw new Error('No response body');
 
       const reader = resp.body.getReader();
@@ -173,9 +216,8 @@ export default function AiAssistant() {
     } finally {
       setLoading(false);
     }
-  }, [messages, loading, location.pathname, fetchContextData, liveData]);
+  }, [messages, loading, pendingImage, location.pathname, fetchContextData, liveData]);
 
-  // Live data status indicator
   const hasLiveData = liveData.indices.length > 0;
 
   return (
@@ -206,7 +248,7 @@ export default function AiAssistant() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-20 right-5 z-50 w-[400px] h-[560px] bg-card border border-border/60 rounded-xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-20 right-5 z-50 w-[400px] h-[560px] bg-card border border-border/60 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
             style={{ boxShadow: '0 25px 60px -12px rgba(0,0,0,0.5)' }}
           >
             {/* Header */}
@@ -219,7 +261,7 @@ export default function AiAssistant() {
                 <div className="flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${hasLiveData ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
                   <p className="text-[9px] text-muted-foreground">
-                    {hasLiveData ? 'Live Data Connected' : 'Connecting...'}
+                    {hasLiveData ? 'Live Data · Chart Analysis' : 'Connecting...'}
                   </p>
                 </div>
               </div>
@@ -249,12 +291,19 @@ export default function AiAssistant() {
                 <div className="space-y-3 mt-2">
                   <div className="text-center space-y-1">
                     <p className="text-[11px] text-muted-foreground">Powered by live market data</p>
-                    <p className="text-[13px] font-semibold text-foreground">Stocks, Options & Trading</p>
+                    <p className="text-[13px] font-semibold text-foreground">Stocks, Options, Charts & More</p>
+                    <p className="text-[9px] text-primary/70 font-medium mt-1">📸 Upload any chart screenshot for instant technical analysis</p>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 mt-3">
                     {SUGGESTIONS.map((s, i) => (
-                      <button key={i} onClick={() => sendMessage(s)}
-                        className="text-left text-[9px] text-muted-foreground hover:text-foreground bg-secondary/40 hover:bg-secondary/70 rounded-md px-2.5 py-2 transition-colors border border-border/30">
+                      <button key={i} onClick={() => {
+                        if (s.includes('📸')) {
+                          fileInputRef.current?.click();
+                        } else {
+                          sendMessage(s);
+                        }
+                      }}
+                        className="text-left text-[9px] text-muted-foreground hover:text-foreground bg-secondary/40 hover:bg-secondary/70 rounded-lg px-2.5 py-2 transition-colors border border-border/30">
                         {s}
                       </button>
                     ))}
@@ -263,24 +312,30 @@ export default function AiAssistant() {
               )}
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-lg px-3 py-2 text-[11px] leading-relaxed ${
+                  <div className={`max-w-[85%] rounded-xl px-3 py-2 text-[11px] leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-primary/20 text-foreground border border-primary/20'
-                      : 'bg-secondary/50 text-foreground border border-border/30'
+                      ? 'bg-primary/15 text-foreground border border-primary/15'
+                      : 'bg-secondary/40 text-foreground border border-border/20'
                   }`}>
+                    {/* Show uploaded image thumbnail */}
+                    {msg.imagePreview && (
+                      <div className="mb-2 rounded-lg overflow-hidden border border-border/20">
+                        <img src={msg.imagePreview} alt="Uploaded chart" className="w-full max-h-40 object-contain bg-background/50" />
+                      </div>
+                    )}
                     {msg.role === 'assistant' ? (
                       <div className="prose prose-sm prose-invert max-w-none [&>*]:text-[11px] [&>*]:leading-relaxed [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-[13px] [&_h2]:text-[12px] [&_h3]:text-[11px] [&_code]:text-[10px] [&_code]:bg-background/50 [&_code]:px-1 [&_code]:rounded [&_strong]:text-primary [&_a]:text-[hsl(var(--terminal-cyan))]">
-                        <ReactMarkdown>{msg.content || '...'}</ReactMarkdown>
+                        <ReactMarkdown>{(typeof msg.content === 'string' ? msg.content : getDisplayContent(msg.content)) || '...'}</ReactMarkdown>
                       </div>
                     ) : (
-                      <span>{msg.content}</span>
+                      <span>{getDisplayContent(msg.content)}</span>
                     )}
                   </div>
                 </div>
               ))}
               {loading && messages[messages.length - 1]?.role === 'user' && (
                 <div className="flex justify-start">
-                  <div className="bg-secondary/50 border border-border/30 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                  <div className="bg-secondary/40 border border-border/20 rounded-xl px-3 py-2 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.2s' }} />
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.4s' }} />
@@ -289,24 +344,48 @@ export default function AiAssistant() {
               )}
             </div>
 
+            {/* Pending image preview */}
+            {pendingImage && (
+              <div className="px-3 py-2 border-t border-border/30 bg-secondary/20">
+                <div className="flex items-center gap-2">
+                  <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-border/30">
+                    <img src={pendingImage} alt="Chart to analyze" className="w-full h-full object-cover" />
+                    <button onClick={() => setPendingImage(null)}
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[8px] font-bold shadow-sm">
+                      ×
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground flex-1">Chart attached — add a question or send directly</p>
+                </div>
+              </div>
+            )}
+
             {/* Input */}
             <div className="p-3 border-t border-border/40 bg-card/80">
-              <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="flex gap-2">
+              <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="flex gap-2 items-end">
+                <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageUpload} />
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="flex-shrink-0 w-9 h-9 rounded-lg bg-secondary/40 border border-border/30 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all"
+                  title="Upload chart screenshot">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </button>
                 <input
                   ref={inputRef}
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask about stocks, options, charts..."
+                  placeholder={pendingImage ? "Ask about this chart..." : "Ask about stocks, options, charts..."}
                   disabled={loading}
-                  className="flex-1 bg-secondary/50 border border-border/50 rounded-lg px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40 transition-colors disabled:opacity-50"
+                  className="flex-1 bg-secondary/40 border border-border/30 rounded-lg px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/30 transition-colors disabled:opacity-50"
                 />
-                <button type="submit" disabled={loading || !input.trim()}
-                  className="px-3 py-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button type="submit" disabled={loading || (!input.trim() && !pendingImage)}
+                  className="flex-shrink-0 px-3 py-2 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/20 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                   Send
                 </button>
               </form>
-              <p className="text-[8px] text-muted-foreground text-center mt-1.5">AI analysis is not financial advice. Always do your own research.</p>
+              <p className="text-[8px] text-muted-foreground/50 text-center mt-1.5">AI analysis is not financial advice. Always do your own research.</p>
             </div>
           </motion.div>
         )}
