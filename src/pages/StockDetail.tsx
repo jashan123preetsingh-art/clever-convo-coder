@@ -175,37 +175,6 @@ export default function StockDetail() {
         color: c.close >= c.open ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
       })));
 
-      // EMA overlays with better visibility
-      const addEMA = (p: number, color: string, width: 1 | 2 | 3 | 4 = 1) => {
-        if (realChartData.length <= p) return;
-        const k = 2 / (p + 1);
-        let e = realChartData.slice(0, p).reduce((s: number, c: any) => s + c.close, 0) / p;
-        const data = [{ time: realChartData[p - 1].time, value: e }];
-        for (let i = p; i < realChartData.length; i++) {
-          e = realChartData[i].close * k + e * (1 - k);
-          data.push({ time: realChartData[i].time, value: e });
-        }
-        chart.addSeries(LineSeries, {
-          color, lineWidth: width, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
-        }).setData(data);
-      };
-
-      addEMA(20, '#f59e0b80', 1);
-      addEMA(50, '#3b82f660', 1);
-      addEMA(200, '#ef444450', 1);
-
-      // S/R price lines
-      if (technicals) {
-        [
-          { price: technicals.s1, title: 'S1', color: '#ef444440' },
-          { price: technicals.s2, title: 'S2', color: '#ef444425' },
-          { price: technicals.r1, title: 'R1', color: '#10b98140' },
-          { price: technicals.r2, title: 'R2', color: '#10b98125' },
-        ].forEach(l => {
-          if (l.price) cs.createPriceLine({ price: l.price, color: l.color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: l.title });
-        });
-      }
-
       chart.subscribeCrosshairMove((param: any) => {
         if (!param?.time) { setCrosshairData(null); return; }
         const candle = param.seriesData?.get(cs);
