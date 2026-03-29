@@ -18,6 +18,7 @@ const OIAnalysis = lazy(() => import("./pages/OIAnalysis"));
 const News = lazy(() => import("./pages/News"));
 const StockDetail = lazy(() => import("./pages/StockDetail"));
 const Admin = lazy(() => import("./pages/Admin"));
+const TradingAgent = lazy(() => import("./pages/TradingAgent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const AppRoutes = () => (
     <Route path="/news" element={<ProtectedRoute><TerminalLayout><News /></TerminalLayout></ProtectedRoute>} />
     <Route path="/stock/:symbol" element={<ProtectedRoute><TerminalLayout><StockDetail /></TerminalLayout></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute><TerminalLayout><Admin /></TerminalLayout></ProtectedRoute>} />
+    <Route path="/trading-agent" element={<ProtectedRoute><TerminalLayout><TradingAgent /></TerminalLayout></ProtectedRoute>} />
     <Route path="/charts" element={<Navigate to="/" replace />} />
     <Route path="/charts/:symbol" element={<ProtectedRoute><TerminalLayout><StockDetail /></TerminalLayout></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />

@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { path: '/fii-dii', label: 'FII/DII', shortcut: 'F6', icon: '⇄' },
   { path: '/oi-analysis', label: 'OI Analysis', shortcut: 'F7', icon: '📈' },
   { path: '/news', label: 'News', shortcut: 'F8', icon: '◉' },
+  { path: '/trading-agent', label: 'AI Agent', shortcut: 'F9', icon: '🤖' },
 ];
 
 export default function TerminalLayout({ children }: { children: React.ReactNode }) {
