@@ -110,35 +110,7 @@ function computeQualityScore(stock: Stock): QualityScore {
   return { total, grade, priceEvent, volume, candle, structure, liquidity, relStrength, sector, keyLevel, volumeDesc, candleDesc, structureDesc, risk, invalidation, freshness };
 }
 
-// ═══ MEASURES & SCANS ═══
-const MEASURES = [
-  { key: 'close', label: 'Close', group: 'Price' },
-  { key: 'open', label: 'Open', group: 'Price' },
-  { key: 'high', label: 'High', group: 'Price' },
-  { key: 'low', label: 'Low', group: 'Price' },
-  { key: 'change_pct', label: '% Change', group: 'Price' },
-  { key: 'volume', label: 'Volume', group: 'Volume' },
-  { key: 'avg_volume_10d', label: 'Avg Volume (10d)', group: 'Volume' },
-  { key: 'market_cap', label: 'Market Cap (Cr)', group: 'Fundamentals' },
-  { key: 'pe_ratio', label: 'P/E Ratio', group: 'Fundamentals' },
-  { key: 'roe', label: 'ROE %', group: 'Fundamentals' },
-  { key: 'roce', label: 'ROCE %', group: 'Fundamentals' },
-  { key: 'debt_to_equity', label: 'Debt/Equity', group: 'Fundamentals' },
-  { key: 'dividend_yield', label: 'Dividend Yield %', group: 'Fundamentals' },
-  { key: 'promoter_holding', label: 'Promoter Holding %', group: 'Fundamentals' },
-  { key: 'week_52_high', label: '52W High', group: 'Price Levels' },
-  { key: 'week_52_low', label: '52W Low', group: 'Price Levels' },
-  { key: 'prev_close', label: 'Previous Close', group: 'Price' },
-];
-
-const OPERATORS = [
-  { key: '>', label: 'greater than' },
-  { key: '<', label: 'less than' },
-  { key: '>=', label: '≥' },
-  { key: '<=', label: '≤' },
-  { key: '==', label: 'equal to' },
-];
-
+// ═══ SCAN ENGINE ═══
 interface Condition {
   id: string;
   measure: string;
@@ -154,7 +126,7 @@ interface ScanPreset {
   name: string;
   description: string;
   icon: string;
-  category: 'breakout' | 'momentum' | 'value' | 'quality' | 'volume' | 'price';
+  category: string;
   conditions: Omit<Condition, 'id'>[];
 }
 
@@ -166,7 +138,7 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
       { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 'b2', name: 'Intraday Breakout – New High', description: 'Price crossing today\'s high with volume', icon: '🔥', category: 'breakout',
+  { id: 'b2', name: 'Intraday Breakout – New High', description: 'Price crossing today high with volume', icon: '🔥', category: 'breakout',
     conditions: [
       { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.995 },
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
@@ -182,7 +154,7 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.97 },
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
     ] },
-  { id: 'b5', name: 'Swing Breakout – 52W High', description: 'Making new 52-week highs', icon: '🏔️', category: 'breakout',
+  { id: 'b5', name: '52 Week High Breakout', description: 'Making new 52-week highs today', icon: '🏔️', category: 'breakout',
     conditions: [
       { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 1.0 },
     ] },
@@ -196,6 +168,90 @@ const DEFAULT_SCANS: ScanPreset[] = [
     conditions: [
       { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 3 },
     ] },
+  { id: 'b8', name: '30 Day Range Breakout', description: 'Price breaking 30-day consolidation range', icon: '📐', category: 'breakout',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.03 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 },
+    ] },
+  { id: 'b9', name: 'BTST – Gap Up Opening', description: 'Buy Today Sell Tomorrow – strong close for gap up', icon: '🎯', category: 'breakout',
+    conditions: [
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.99 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+
+  // ─── ORB (Opening Range Breakout) ───
+  { id: 'orb1', name: '15 Min ORB – Bullish', description: 'Price above 15min opening range high with volume', icon: '⏱️', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.005 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.005 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'orb2', name: '15 Min ORB – Bearish', description: 'Price below 15min opening range low', icon: '⏱️', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.995 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.995 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'orb3', name: '30 Min ORB – Bullish', description: 'Breaking above 30min high with momentum', icon: '🕐', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.008 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.8', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'orb4', name: '30 Min ORB – Bearish', description: 'Breaking below 30min low with selling', icon: '🕐', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.992 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-0.8', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'orb5', name: 'ORB + Volume Breakout', description: 'ORB with 2x+ volume confirmation', icon: '💹', category: 'orb',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.01 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+    ] },
+
+  // ─── EMA / MA SCREENS ───
+  { id: 'ema1', name: 'Golden Crossover', description: 'Price > 50 EMA crossing above 200 EMA zone', icon: '✨', category: 'ema',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_low', multiplier: 1.3 },
+    ] },
+  { id: 'ema2', name: 'Death Crossover', description: 'Price below key EMAs – bearish signal', icon: '💀', category: 'ema',
+    conditions: [
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.8 },
+    ] },
+  { id: 'ema3', name: 'EMA 20 > EMA 50 Crossover', description: 'Short-term trend turning bullish', icon: '📊', category: 'ema',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.3', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.003 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.2 },
+    ] },
+  { id: 'ema4', name: 'Price Above All EMAs', description: 'Above 20, 50, 100, 200 EMA – strong uptrend', icon: '🟢', category: 'ema',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_low', multiplier: 1.5 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+    ] },
+  { id: 'ema5', name: 'Price Below All EMAs', description: 'Below all key EMAs – strong downtrend', icon: '🔴', category: 'ema',
+    conditions: [
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.7 },
+    ] },
+  { id: 'ema6', name: 'EMA Bounce (20 EMA Support)', description: 'Price bouncing off 20 EMA support', icon: '↗️', category: 'ema',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'low', multiplier: 1.01 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.2 },
+    ] },
+  { id: 'ema7', name: 'Bullish EMA Stack', description: '20>50>100>200 EMA alignment – momentum', icon: '📈', category: 'ema',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_low', multiplier: 1.4 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0', compareMeasure: '', multiplier: 1 },
+    ] },
 
   // ─── MOMENTUM ───
   { id: 's1', name: 'Top Gainers (>3%)', description: 'Strong bullish momentum today', icon: '🟢', category: 'momentum',
@@ -204,12 +260,98 @@ const DEFAULT_SCANS: ScanPreset[] = [
     conditions: [{ measure: 'change_pct', operator: '<', compareType: 'number', value: '-2', compareMeasure: '', multiplier: 1 }] },
   { id: 's3', name: 'Strong Rally (>5%)', description: 'Stocks surging 5%+', icon: '🔥', category: 'momentum',
     conditions: [{ measure: 'change_pct', operator: '>', compareType: 'number', value: '5', compareMeasure: '', multiplier: 1 }] },
+  { id: 'm4', name: 'Blasting Momentum', description: 'Huge move with massive volume – trending stocks', icon: '💨', category: 'momentum',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '4', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 },
+    ] },
+  { id: 'm5', name: 'Intraday Rockers', description: 'Big intraday range with volume – day traders delight', icon: '🎸', category: 'momentum',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '3', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'm6', name: 'Momentum Stocks', description: 'Consistent upward momentum with volume', icon: '⚡', category: 'momentum',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.0 },
+    ] },
 
   // ─── VOLUME ───
   { id: 's5', name: 'Volume Breakout (2x)', description: 'Double average volume', icon: '📊', category: 'volume',
     conditions: [{ measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 }] },
   { id: 's7', name: 'Low Volume', description: 'Below half of average volume', icon: '🔇', category: 'volume',
     conditions: [{ measure: 'volume', operator: '<', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 0.5 }] },
+  { id: 'v3', name: 'Volume Shockers (5x)', description: 'Exploding volume 5x average – unusual activity', icon: '🌊', category: 'volume',
+    conditions: [{ measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 5 }] },
+  { id: 'v4', name: 'Volume Buzzer', description: 'Rising volume day-over-day with price action', icon: '🔔', category: 'volume',
+    conditions: [
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'v5', name: 'Swing Breakout + Volume', description: 'Breakout with high volume confirmation', icon: '📈', category: 'volume',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2 },
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.98 },
+    ] },
+
+  // ─── CANDLESTICK ───
+  { id: 'c1', name: 'Bullish Marubozu', description: 'Strong green candle, close near high – no upper wick', icon: '🟩', category: 'candle',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.995 },
+    ] },
+  { id: 'c2', name: 'Bearish Marubozu', description: 'Strong red candle, close near low – full body', icon: '🟥', category: 'candle',
+    conditions: [
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-2', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '<=', compareType: 'measure', value: '', compareMeasure: 'low', multiplier: 1.005 },
+    ] },
+  { id: 'c3', name: 'Hammer Pattern', description: 'Long lower wick, small body – potential reversal', icon: '🔨', category: 'candle',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.0 },
+      { measure: 'low', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.98 },
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.99 },
+    ] },
+  { id: 'c4', name: 'Shooting Star', description: 'Long upper wick after uptrend – bearish reversal', icon: '⭐', category: 'candle',
+    conditions: [
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.0 },
+      { measure: 'high', operator: '>', compareType: 'measure', value: '', compareMeasure: 'close', multiplier: 1.02 },
+      { measure: 'close', operator: '<=', compareType: 'measure', value: '', compareMeasure: 'low', multiplier: 1.01 },
+    ] },
+  { id: 'c5', name: 'Bullish Engulfing', description: 'Today body fully engulfs yesterday – bullish', icon: '🟢', category: 'candle',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'open', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.01 },
+    ] },
+  { id: 'c6', name: 'Dark Cloud Cover', description: 'Bearish reversal – opened above prev high, closed below midpoint', icon: '🌑', category: 'candle',
+    conditions: [
+      { measure: 'open', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.005 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-1', compareMeasure: '', multiplier: 1 },
+    ] },
+
+  // ─── INTRADAY ───
+  { id: 'i1', name: 'Intraday Breakout + Volume', description: 'Rising price with rising volume intraday', icon: '📈', category: 'intraday',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.005 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'i2', name: 'Intraday Reversal', description: 'Opened down but recovering – potential reversal', icon: '🔄', category: 'intraday',
+    conditions: [
+      { measure: 'open', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.99 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.01 },
+    ] },
+  { id: 'i3', name: 'Narrow Range Day (NR7)', description: 'Smallest range in 7 days – volatility contraction', icon: '◇', category: 'intraday',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'i4', name: 'Wide Range Day', description: 'High intraday range – strong directional move', icon: '↔️', category: 'intraday',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '3', compareMeasure: '', multiplier: 1 },
+    ] },
 
   // ─── QUALITY ───
   { id: 's8', name: 'High ROE (>20%)', description: 'Superior return on equity', icon: '💎', category: 'quality',
@@ -220,35 +362,103 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'roce', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
-  { id: 's10', name: 'Debt Free', description: 'Near-zero debt', icon: '🏦', category: 'quality',
+  { id: 's10', name: 'Debt Free Companies', description: 'Near-zero debt on books', icon: '🏦', category: 'quality',
     conditions: [{ measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.1', compareMeasure: '', multiplier: 1 }] },
-  { id: 's11', name: 'Promoter Conviction', description: 'Promoter holding > 60%', icon: '🛡️', category: 'quality',
+  { id: 's11', name: 'Promoter Conviction (>60%)', description: 'Strong promoter holding', icon: '🛡️', category: 'quality',
     conditions: [{ measure: 'promoter_holding', operator: '>', compareType: 'number', value: '60', compareMeasure: '', multiplier: 1 }] },
+  { id: 'q5', name: 'Negative Working Capital', description: 'Companies with operational efficiency', icon: '💡', category: 'quality',
+    conditions: [
+      { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
+      { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.3', compareMeasure: '', multiplier: 1 },
+    ] },
 
   // ─── VALUE ───
-  { id: 's12', name: 'Low PE Stocks', description: 'P/E under 15', icon: '🏷️', category: 'value',
+  { id: 's12', name: 'Low PE Stocks (<15)', description: 'Value picks with low P/E', icon: '🏷️', category: 'value',
     conditions: [{ measure: 'pe_ratio', operator: '<', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 }] },
-  { id: 's13', name: 'High Dividend', description: 'Yield above 3%', icon: '💰', category: 'value',
+  { id: 's13', name: 'High Dividend (>3%)', description: 'Dividend yield above 3%', icon: '💰', category: 'value',
     conditions: [{ measure: 'dividend_yield', operator: '>', compareType: 'number', value: '3', compareMeasure: '', multiplier: 1 }] },
-  { id: 's14', name: 'Value + Quality', description: 'PE<20, ROE>15, Low Debt', icon: '🎯', category: 'value',
+  { id: 's14', name: 'Value + Quality', description: 'PE<20, ROE>15, Low Debt – best of both', icon: '🎯', category: 'value',
     conditions: [
       { measure: 'pe_ratio', operator: '<', compareType: 'number', value: '20', compareMeasure: '', multiplier: 1 },
       { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
+  { id: 'v6', name: 'Undervalued Near High', description: 'Low PE stocks nearing 52W high – overlooked value', icon: '💎', category: 'value',
+    conditions: [
+      { measure: 'pe_ratio', operator: '<', compareType: 'number', value: '20', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'week_52_high', multiplier: 0.9 },
+    ] },
+  { id: 'v7', name: 'Potential Multibagger', description: 'Growth + momentum + quality metrics combined', icon: '👑', category: 'value',
+    conditions: [
+      { measure: 'roe', operator: '>', compareType: 'number', value: '18', compareMeasure: '', multiplier: 1 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '0', compareMeasure: '', multiplier: 1 },
+      { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'v8', name: 'Mighty Midcap Stocks', description: 'Mid-caps with robust fundamentals and growth', icon: '💪', category: 'value',
+    conditions: [
+      { measure: 'market_cap', operator: '>', compareType: 'number', value: '5000', compareMeasure: '', multiplier: 1 },
+      { measure: 'market_cap', operator: '<', compareType: 'number', value: '50000', compareMeasure: '', multiplier: 1 },
+      { measure: 'roe', operator: '>', compareType: 'number', value: '12', compareMeasure: '', multiplier: 1 },
+    ] },
+  { id: 'v9', name: 'Stellar Smallcap Stocks', description: 'High-performing small-caps with solid fundamentals', icon: '🌟', category: 'value',
+    conditions: [
+      { measure: 'market_cap', operator: '<', compareType: 'number', value: '5000', compareMeasure: '', multiplier: 1 },
+      { measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 },
+      { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
+    ] },
+
+  // ─── SWING ───
+  { id: 'sw1', name: 'Swing Trading – Large Cap', description: 'RSI in sweet spot + volume on large caps', icon: '🔄', category: 'swing',
+    conditions: [
+      { measure: 'market_cap', operator: '>', compareType: 'number', value: '20000', compareMeasure: '', multiplier: 1 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+  { id: 'sw2', name: 'Swing Fake and Move Setup', description: 'Stocks faking out then reversing with volume', icon: '🎭', category: 'swing',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.01 },
+      { measure: 'low', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.995 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+  { id: 'sw3', name: 'One Day Holding', description: 'Buy at today low, sell tomorrow for 33-63% potential', icon: '📅', category: 'swing',
+    conditions: [
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '2', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'sw4', name: 'Short Term Breakouts', description: 'Stocks breaking out with price above 6-day max', icon: '🚀', category: 'swing',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.02 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'sw5', name: 'Swing High Volume', description: 'Swing stocks with high volume – institutional interest', icon: '🏛️', category: 'swing',
+    conditions: [
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 2.5 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'market_cap', operator: '>', compareType: 'number', value: '1000', compareMeasure: '', multiplier: 1 },
+    ] },
 
   // ─── PRICE ───
-  { id: 's16', name: 'Penny Stocks (<₹50)', description: 'Low-price stocks', icon: '🪙', category: 'price',
+  { id: 's16', name: 'Penny Stocks (<₹50)', description: 'Low-price speculative stocks', icon: '🪙', category: 'price',
     conditions: [{ measure: 'close', operator: '<', compareType: 'number', value: '50', compareMeasure: '', multiplier: 1 }] },
-  { id: 's17', name: 'Blue Chips (>₹2000)', description: 'Premium large caps', icon: '💠', category: 'price',
+  { id: 's17', name: 'Blue Chips (>₹2000)', description: 'Premium large cap stocks', icon: '💠', category: 'price',
     conditions: [{ measure: 'close', operator: '>', compareType: 'number', value: '2000', compareMeasure: '', multiplier: 1 }] },
+  { id: 'p3', name: 'Mid-Range (₹100-₹500)', description: 'Affordable mid-range stocks', icon: '🔷', category: 'price',
+    conditions: [
+      { measure: 'close', operator: '>', compareType: 'number', value: '100', compareMeasure: '', multiplier: 1 },
+      { measure: 'close', operator: '<', compareType: 'number', value: '500', compareMeasure: '', multiplier: 1 },
+    ] },
 ];
 
 const CATEGORIES = [
-  { key: 'all', label: 'All', icon: '◎' },
+  { key: 'all', label: 'All Scans', icon: '◎' },
   { key: 'breakout', label: 'Breakouts', icon: '⚡' },
+  { key: 'orb', label: 'ORB', icon: '⏱️' },
+  { key: 'ema', label: 'EMA / MA', icon: '📊' },
   { key: 'momentum', label: 'Momentum', icon: '🟢' },
-  { key: 'volume', label: 'Volume', icon: '📊' },
+  { key: 'candle', label: 'Candlestick', icon: '🕯️' },
+  { key: 'intraday', label: 'Intraday', icon: '📈' },
+  { key: 'volume', label: 'Volume', icon: '🌊' },
+  { key: 'swing', label: 'Swing', icon: '🔄' },
   { key: 'quality', label: 'Quality', icon: '💎' },
   { key: 'value', label: 'Value', icon: '🏷️' },
   { key: 'price', label: 'Price', icon: '🪙' },
@@ -458,16 +668,10 @@ function BreakoutDetailCard({ stock, onClose }: { stock: Stock; onClose: () => v
 
 // ═══ MAIN COMPONENT ═══
 export default function Scanner() {
-  const [tab, setTab] = useState<'feeds' | 'custom'>('feeds');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeScan, setActiveScan] = useState<ScanPreset | null>(null);
   const [scanResults, setScanResults] = useState<Stock[] | null>(null);
   const [expandedStock, setExpandedStock] = useState<string | null>(null);
-
-  const [conditions, setConditions] = useState<Condition[]>([newCondition()]);
-  const [logicMode, setLogicMode] = useState<'all' | 'any'>('all');
-  const [customResults, setCustomResults] = useState<Stock[] | null>(null);
-  const [hasRunCustom, setHasRunCustom] = useState(false);
 
   const [sortKey, setSortKey] = useState('change_pct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -491,13 +695,7 @@ export default function Scanner() {
     setPage(0); setSearch(''); setSortKey('change_pct'); setSortDir('desc'); setExpandedStock(null);
   }, []);
 
-  const runCustomScan = useCallback(() => {
-    const conds = conditions.map(({ id, ...rest }) => rest);
-    setCustomResults(runConditions(conds, logicMode));
-    setHasRunCustom(true); setPage(0); setSearch(''); setExpandedStock(null);
-  }, [conditions, logicMode]);
-
-  const activeResults = tab === 'feeds' ? scanResults : customResults;
+  const activeResults = scanResults;
 
   const sortedResults = useMemo(() => {
     if (!activeResults) return null;
@@ -524,16 +722,6 @@ export default function Scanner() {
     else { setSortKey(key); setSortDir('desc'); }
   }, [sortKey]);
 
-  const addCondition = useCallback(() => {
-    setConditions(prev => [...prev, { id: makeId(), measure: 'roe', operator: '>', compareType: 'number', value: '15', compareMeasure: '', multiplier: 1 }]);
-  }, []);
-  const removeCondition = useCallback((id: string) => {
-    setConditions(prev => prev.length > 1 ? prev.filter(c => c.id !== id) : prev);
-  }, []);
-  const updateCondition = useCallback((id: string, updates: Partial<Condition>) => {
-    setConditions(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-  }, []);
-
   const exportCSV = useCallback(() => {
     if (!filteredResults) return;
     const header = RESULT_COLUMNS.map(c => c.label).join(',');
@@ -547,173 +735,64 @@ export default function Scanner() {
     URL.revokeObjectURL(url);
   }, [filteredResults]);
 
-  const groups = [...new Set(MEASURES.map(m => m.group))];
-
-  const conditionText = (c: Condition) => {
-    const m = MEASURES.find(x => x.key === c.measure)?.label || c.measure;
-    const op = OPERATORS.find(o => o.key === c.operator)?.label || c.operator;
-    if (c.compareType === 'number') return `${m} ${op} ${c.value}`;
-    const cm = MEASURES.find(x => x.key === c.compareMeasure)?.label || c.compareMeasure;
-    return `${m} ${op} ${c.multiplier !== 1 ? `${c.multiplier}× ` : ''}${cm}`;
-  };
-
-  const showResults = (tab === 'feeds' && scanResults) || (tab === 'custom' && hasRunCustom);
-
   return (
     <div className="p-4 max-w-[1500px] mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-lg font-bold text-foreground">Scanner</h1>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Scan {getAllStocks().length} stocks · {DEFAULT_SCANS.length} algorithms · 7-pillar quality scoring</p>
-        </div>
-        <div className="flex gap-0.5 bg-secondary/50 p-0.5 rounded-lg border border-border/50">
-          <button onClick={() => setTab('feeds')}
-            className={`px-4 py-2 rounded-md text-[10px] font-semibold transition-all ${tab === 'feeds' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            Pre-built Scans
-          </button>
-          <button onClick={() => setTab('custom')}
-            className={`px-4 py-2 rounded-md text-[10px] font-semibold transition-all ${tab === 'custom' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            Custom Builder
-          </button>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Scan {getAllStocks().length} stocks · {DEFAULT_SCANS.length} algorithms · 12 categories · 7-pillar quality scoring</p>
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {tab === 'feeds' ? (
-          <motion.div key="feeds" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-            {/* Categories */}
-            <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
-              {CATEGORIES.map(c => (
-                <button key={c.key} onClick={() => setSelectedCategory(c.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold border whitespace-nowrap transition-all
-                    ${selectedCategory === c.key
-                      ? 'bg-primary/10 text-primary border-primary/30 glow-primary'
-                      : 'bg-card text-muted-foreground border-border/50 hover:text-foreground hover:border-border'}`}>
-                  <span>{c.icon}</span> {c.label}
-                </button>
-              ))}
+      {/* Categories */}
+      <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
+        {CATEGORIES.map(c => {
+          const count = selectedCategory === c.key
+            ? (c.key === 'all' ? DEFAULT_SCANS.length : DEFAULT_SCANS.filter(s => s.category === c.key).length)
+            : (c.key === 'all' ? DEFAULT_SCANS.length : DEFAULT_SCANS.filter(s => s.category === c.key).length);
+          return (
+            <button key={c.key} onClick={() => setSelectedCategory(c.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold border whitespace-nowrap transition-all
+                ${selectedCategory === c.key
+                  ? 'bg-primary/10 text-primary border-primary/30 glow-primary'
+                  : 'bg-card text-muted-foreground border-border/50 hover:text-foreground hover:border-border'}`}>
+              <span>{c.icon}</span> {c.label}
+              <span className="text-[8px] opacity-60">({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Scan Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mb-4">
+        {filteredScans.map(scan => (
+          <motion.button key={scan.id} onClick={() => selectScan(scan)}
+            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+            className={`text-left p-3 rounded-lg border transition-all
+              ${activeScan?.id === scan.id
+                ? 'bg-primary/5 border-primary/30 glow-primary'
+                : 'bg-card border-border/40 hover:border-border/80'}`}>
+            <div className="flex items-start justify-between mb-1">
+              <span className="text-lg">{scan.icon}</span>
+              <span className={`text-[10px] font-bold font-data px-2 py-0.5 rounded-full
+                ${scanCounts[scan.id] > 0 ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'}`}>
+                {scanCounts[scan.id]}
+              </span>
             </div>
-
-            {/* Scan Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mb-4">
-              {filteredScans.map(scan => (
-                <motion.button key={scan.id} onClick={() => selectScan(scan)}
-                  whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                  className={`text-left p-3 rounded-lg border transition-all
-                    ${activeScan?.id === scan.id
-                      ? 'bg-primary/5 border-primary/30 glow-primary'
-                      : 'bg-card border-border/40 hover:border-border/80'}`}>
-                  <div className="flex items-start justify-between mb-1">
-                    <span className="text-lg">{scan.icon}</span>
-                    <span className={`text-[10px] font-bold font-data px-2 py-0.5 rounded-full
-                      ${scanCounts[scan.id] > 0 ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'}`}>
-                      {scanCounts[scan.id]}
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-semibold text-foreground mb-0.5">{scan.name}</p>
-                  <p className="text-[8px] text-muted-foreground leading-relaxed">{scan.description}</p>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div key="custom" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-            <div className="t-card overflow-hidden mb-4">
-              <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-foreground">Build Custom Scan</span>
-                <div className="flex items-center gap-2 text-[10px]">
-                  <span className="text-muted-foreground">Match</span>
-                  <select value={logicMode} onChange={e => setLogicMode(e.target.value as 'all' | 'any')}
-                    className="bg-secondary border border-border rounded-md px-2 py-1 text-[10px] text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-primary/30">
-                    <option value="all">ALL conditions</option>
-                    <option value="any">ANY condition</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="p-4 space-y-2.5">
-                {conditions.map((cond, idx) => (
-                  <div key={cond.id} className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] text-muted-foreground w-5 text-right font-data">{idx + 1}.</span>
-                    <select value={cond.measure} onChange={e => updateCondition(cond.id, { measure: e.target.value })}
-                      className="bg-secondary border border-border rounded-md px-2.5 py-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 min-w-[140px]">
-                      {groups.map(g => (
-                        <optgroup key={g} label={g}>
-                          {MEASURES.filter(m => m.group === g).map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
-                        </optgroup>
-                      ))}
-                    </select>
-                    <select value={cond.operator} onChange={e => updateCondition(cond.id, { operator: e.target.value })}
-                      className="bg-secondary border border-border rounded-md px-2.5 py-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 min-w-[120px]">
-                      {OPERATORS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-                    </select>
-                    <select value={cond.compareType} onChange={e => updateCondition(cond.id, { compareType: e.target.value as 'number' | 'measure' })}
-                      className="bg-secondary border border-border rounded-md px-2 py-1.5 text-[10px] text-foreground focus:outline-none">
-                      <option value="number">Number</option>
-                      <option value="measure">Measure</option>
-                    </select>
-                    {cond.compareType === 'number' ? (
-                      <input type="number" step="any" value={cond.value}
-                        onChange={e => updateCondition(cond.id, { value: e.target.value })}
-                        className="bg-secondary border border-border rounded-md px-2.5 py-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 w-20 font-data" />
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <input type="number" step="any" value={cond.multiplier}
-                          onChange={e => updateCondition(cond.id, { multiplier: parseFloat(e.target.value) || 1 })}
-                          className="bg-secondary border border-border rounded-md px-2 py-1.5 text-[10px] text-foreground focus:outline-none w-14 font-data" />
-                        <span className="text-[10px] text-muted-foreground">×</span>
-                        <select value={cond.compareMeasure} onChange={e => updateCondition(cond.id, { compareMeasure: e.target.value })}
-                          className="bg-secondary border border-border rounded-md px-2.5 py-1.5 text-[10px] text-foreground focus:outline-none min-w-[120px]">
-                          {groups.map(g => (
-                            <optgroup key={g} label={g}>
-                              {MEASURES.filter(m => m.group === g).map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
-                            </optgroup>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                    {conditions.length > 1 && (
-                      <button onClick={() => removeCondition(cond.id)}
-                        className="text-destructive/40 hover:text-destructive text-sm transition-colors ml-1">✕</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="px-4 py-3 border-t border-border/40 flex items-center gap-3">
-                <button onClick={addCondition}
-                  className="w-7 h-7 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center text-sm font-bold">+</button>
-                <button onClick={runCustomScan}
-                  className="px-5 py-2 rounded-md bg-primary text-primary-foreground text-[11px] font-semibold hover:bg-primary/90 transition-all shadow-sm glow-primary">
-                  Run Scan
-                </button>
-                <span className="text-[9px] text-muted-foreground">
-                  {conditions.length} condition{conditions.length > 1 ? 's' : ''} · {getAllStocks().length} stocks
-                </span>
-              </div>
-            </div>
-
-            {hasRunCustom && (
-              <div className="flex gap-1.5 flex-wrap mb-3">
-                {conditions.map(c => (
-                  <span key={c.id} className="px-2 py-0.5 rounded-md text-[9px] bg-primary/8 text-primary border border-primary/15 font-medium">
-                    {conditionText(c)}
-                  </span>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <p className="text-[11px] font-semibold text-foreground mb-0.5">{scan.name}</p>
+            <p className="text-[8px] text-muted-foreground leading-relaxed">{scan.description}</p>
+          </motion.button>
+        ))}
+      </div>
 
       {/* ═══ RESULTS ═══ */}
-      {showResults && (
+      {scanResults && (
         <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="text-[13px] font-bold text-foreground">
-                {tab === 'feeds' && activeScan ? `${activeScan.icon} ${activeScan.name}` : 'Scan Results'}
+                {activeScan ? `${activeScan.icon} ${activeScan.name}` : 'Scan Results'}
               </h2>
               <p className="text-[10px] text-muted-foreground mt-0.5">{filteredResults?.length || 0} stocks matched · Click any row for detailed analysis</p>
             </div>
@@ -823,11 +902,11 @@ export default function Scanner() {
         </motion.div>
       )}
 
-      {tab === 'feeds' && !scanResults && (
+      {!scanResults && (
         <div className="t-card p-14 text-center">
           <div className="text-3xl mb-3">⊕</div>
           <p className="text-[12px] text-muted-foreground font-medium">Select a scan above to see results</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">or switch to Custom Builder to create your own</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">{DEFAULT_SCANS.length} pre-built scans across {CATEGORIES.length - 1} categories</p>
         </div>
       )}
     </div>
