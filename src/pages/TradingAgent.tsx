@@ -226,8 +226,8 @@ export default function TradingAgent() {
                           initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-3 pb-3 text-[11px] text-foreground/90 leading-relaxed border-t border-border/30 pt-2">
-                            <ReactMarkdown className="prose prose-sm prose-invert max-w-none [&_p]:text-[11px] [&_p]:leading-relaxed [&_li]:text-[11px] [&_strong]:text-foreground [&_h1]:text-xs [&_h2]:text-xs [&_h3]:text-[11px]">
+                          <div className="px-3 pb-3 text-[11px] text-foreground/90 leading-relaxed border-t border-border/30 pt-2 prose prose-sm prose-invert max-w-none [&_p]:text-[11px] [&_p]:leading-relaxed [&_li]:text-[11px] [&_strong]:text-foreground">
+                            <ReactMarkdown>
                               {content}
                             </ReactMarkdown>
                           </div>
