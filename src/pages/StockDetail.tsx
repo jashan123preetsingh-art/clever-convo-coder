@@ -89,8 +89,8 @@ export default function StockDetail() {
   const { symbol } = useParams();
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<any>(null);
-  const { watchlist, addToWatchlist, removeFromWatchlist } = useStore();
-  const inWatchlist = watchlist.includes(symbol || '');
+  const { isInWatchlist, toggle: toggleWatchlist } = useWatchlist();
+  const inWatchlist = isInWatchlist(symbol || '');
   const [period, setPeriod] = useState('1y');
   const [chartInterval] = useState('1d');
   const [showAI, setShowAI] = useState(false);
