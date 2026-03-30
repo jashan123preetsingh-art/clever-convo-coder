@@ -791,13 +791,13 @@ export default function TradingAgent() {
 
       {/* Quick symbols */}
       {!loading && !result && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="flex flex-wrap gap-1 sm:gap-1.5 mb-4">
           {(mode === 'invest'
-            ? ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ASIANPAINT', 'NESTLEIND', 'PIDILITIND', 'BAJFINANCE']
-            : ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'ADANIENT']
+            ? ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ASIANPAINT', 'NESTLEIND']
+            : ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS']
           ).map(s => (
             <button key={s} onClick={() => setSymbol(s)}
-              className="px-2 py-1 text-[9px] bg-secondary/40 border border-border/20 rounded-lg text-muted-foreground hover:text-foreground hover:border-primary/20 transition-all">
+              className="px-2 py-1 text-[8px] sm:text-[9px] bg-secondary/40 border border-border/20 rounded-lg text-muted-foreground hover:text-foreground hover:border-primary/20 transition-all">
               {s}
             </button>
           ))}
