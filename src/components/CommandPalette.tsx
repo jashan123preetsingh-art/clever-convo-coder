@@ -35,7 +35,7 @@ export default function CommandPalette() {
   const [query, setQuery] = useState('');
   const [showShortcuts, setShowShortcuts] = useState(false);
   const navigate = useNavigate();
-  const { data: apiResults } = useStockSearch(query);
+  
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
