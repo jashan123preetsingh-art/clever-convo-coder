@@ -76,6 +76,42 @@ export default function Admin() {
     },
   });
 
+  const createFeature = useMutation({
+    mutationFn: async (data: { feature_key: string; feature_name: string; description: string; required_plan: string }) => {
+      const { error } = await supabase.from('feature_locks').insert({ ...data, is_locked: true });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feature-locks'] });
+      toast.success('Feature created');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateFeature = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; feature_name: string; description: string; required_plan: string; feature_key: string }) => {
+      const { error } = await supabase.from('feature_locks').update(data).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feature-locks'] });
+      toast.success('Feature updated');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteFeature = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('feature_locks').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feature-locks'] });
+      toast.success('Feature deleted');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const updatePlan = useMutation({
     mutationFn: async ({ userId, plan }: { userId: string; plan: string }) => {
       const { error } = await supabase.from('profiles').update({ plan }).eq('id', userId);
