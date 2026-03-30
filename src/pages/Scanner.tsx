@@ -396,6 +396,42 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
 
+  // ─── VWAP ───
+  { id: 'vw1', name: 'VWAP Bounce – Bullish', description: 'Price dipped below VWAP & bounced back with volume', icon: '📐', category: 'vwap',
+    conditions: [
+      { measure: 'low', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.995 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.003 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+  { id: 'vw2', name: 'VWAP Bounce – Bearish', description: 'Price spiked above VWAP & rejected down', icon: '📉', category: 'vwap',
+    conditions: [
+      { measure: 'high', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.005 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.997 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+  { id: 'vw3', name: 'VWAP Reclaim', description: 'Price reclaiming VWAP zone with strong volume', icon: '🔄', category: 'vwap',
+    conditions: [
+      { measure: 'open', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.998 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.005 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'vw4', name: 'VWAP Hold + Breakout', description: 'Held VWAP support and breaking out with momentum', icon: '🚀', category: 'vwap',
+    conditions: [
+      { measure: 'low', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.99 },
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.995 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'vw5', name: 'VWAP Rejection Short', description: 'Failed to hold above VWAP – short setup', icon: '⬇️', category: 'vwap',
+    conditions: [
+      { measure: 'open', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.002 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.998 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+
   // ─── SWING ───
   { id: 'sw1', name: 'Swing Trading – Large Cap', description: 'RSI sweet spot + volume on large caps', icon: '🔄', category: 'swing',
     conditions: [
