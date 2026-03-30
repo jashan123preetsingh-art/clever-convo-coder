@@ -39,35 +39,61 @@ const MAX_RISK_ROUNDS = 1;
 
 // ── Helpers ──────────────────────────────────────────────
 
+async function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function callAIRaw(
+  apiKey: string,
+  system: string,
+  user: string | Array<any>,
+  model: string
+): Promise<string> {
+  const userContent = typeof user === "string" ? user : user;
+  const messages = [
+    { role: "system", content: system },
+    { role: "user", content: userContent },
+  ];
+
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const resp = await fetch(AI_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model, messages, stream: false }),
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      return data.choices?.[0]?.message?.content || "No response";
+    }
+
+    if (resp.status === 429 && attempt < MAX_RETRIES) {
+      const delay = Math.pow(2, attempt + 1) * 1000 + Math.random() * 1000;
+      console.log(`Rate limited (${model}), retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+      await sleep(delay);
+      continue;
+    }
+
+    if (resp.status === 429) throw new Error("RATE_LIMITED");
+    if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
+    const t = await resp.text();
+    throw new Error(`AI error ${resp.status}: ${t}`);
+  }
+  throw new Error("Max retries exceeded");
+}
+
 async function callAI(
   apiKey: string,
   system: string,
   user: string,
   model: string
 ): Promise<string> {
-  const resp = await fetch(AI_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      stream: false,
-    }),
-  });
-  if (!resp.ok) {
-    if (resp.status === 429) throw new Error("RATE_LIMITED");
-    if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
-    const t = await resp.text();
-    throw new Error(`AI error ${resp.status}: ${t}`);
-  }
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content || "No response";
+  return callAIRaw(apiKey, system, user, model);
+}
 }
 
 // Call AI with image (multimodal)
