@@ -600,8 +600,6 @@ async function runInvestPipeline(apiKey: string, symbol: string, dataCtx: string
 
 async function runOptionsPipeline(apiKey: string, symbol: string, dataCtx: string, stockData: any, optionsConfig?: { riskReward?: string; tradeType?: string }) {
   const M = MODELS.options;
-  const REASONING_HIGH = { effort: "high" };
-  const REASONING_MEDIUM = { effort: "medium" };
   const rrFilter = optionsConfig?.riskReward || "1:2";
   const tradeType = optionsConfig?.tradeType || "all"; // intraday, swing, expiry, all
 
