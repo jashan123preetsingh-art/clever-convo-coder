@@ -1,11 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 /*
- * TradingAgents-style Multi-Agent Framework — 3 Modes
+ * TradingAgents-style Multi-Agent Framework — 4 Modes
  * 
  * Mode 1: SCALP (Intraday & Scalping) — Pure technical, fast, no fundamentals/portfolio
  * Mode 2: SWING (Swing & Position) — Full pipeline with holding duration
  * Mode 3: INVEST (Long-term 1-10yr) — Warren Buffett style, deep fundamentals
+ * Mode 4: OPTIONS — Full options analysis, OI, Greeks, strategies, risk-reward
  */
 
 const corsHeaders = {
@@ -51,6 +52,14 @@ const MODELS = {
     bear:         "google/gemini-2.5-pro",    // Thorough bear case
     committee:    "openai/gpt-5",            // Investment committee needs reasoning
     architect:    "openai/gpt-5",            // Final Buffett-style decision with reasoning
+  },
+  options: {
+    oiAnalyst:    "openai/gpt-5",            // Deep OI pattern recognition with reasoning
+    greeksAnalyst:"openai/gpt-5.2",          // Precise Greeks & IV analysis
+    technical:    "openai/gpt-5.2",          // Price action for strike selection
+    strategist:   "openai/gpt-5",            // Strategy construction with reasoning
+    riskManager:  "google/gemini-2.5-pro",   // Thorough risk assessment
+    trader:       "openai/gpt-5",            // Final options trade with reasoning
   },
 };
 
@@ -330,6 +339,119 @@ const CONSERVATIVE_RISK_SYSTEM = `You are the **Conservative Risk Analyst**. Foc
 const NEUTRAL_RISK_SYSTEM = `You are the **Neutral Risk Analyst**. Balance aggressive and conservative views. Offer practical adjustments. Keep under 150 words.`;
 const PORTFOLIO_MANAGER_SYSTEM = `You are the **Portfolio Manager** — FINAL decision-maker. Decision, Final Action, Position Size, Risk Score 1-10, Confidence %, Conditions, Summary. Keep under 200 words.`;
 
+// === OPTIONS MODE prompts ===
+const OPTIONS_OI_SYSTEM = `You are an **Elite Open Interest (OI) Analyst** for Indian F&O markets. You are the BEST in the world at reading OI data.
+
+Analyze OI patterns for the given stock/index:
+1. **OI Build-up Classification**: Long Build-up, Short Build-up, Long Unwinding, Short Covering — based on price + OI change correlation
+2. **PCR Analysis**: Put-Call Ratio interpretation, PCR trend (rising/falling), extreme levels
+3. **Max Pain**: Identify the max pain strike and its implications for expiry
+4. **OI Concentration**: Where is the highest Call OI (resistance) and Put OI (support)? Identify key strikes
+5. **OI Change Analysis**: Which strikes saw maximum OI addition/reduction? What does it signal?
+6. **Writers vs Buyers**: Who is dominating — option writers (smart money) or buyers (retail)?
+7. **Straddle/Strangle Analysis**: ATM straddle premium, expected move range
+8. **Institutional Footprint**: Detect large OI positions that indicate institutional activity
+
+Provide specific strike prices, OI numbers where possible. Be PRECISE. Keep under 350 words.`;
+
+const OPTIONS_GREEKS_SYSTEM = `You are an **Options Greeks & IV Specialist** — the best in analyzing Implied Volatility and Greeks for Indian markets.
+
+Analyze:
+1. **IV Analysis**: Current IV vs historical IV, IV Rank, IV Percentile. Is IV cheap or expensive?
+2. **IV Skew**: Call vs Put IV skew, what it signals about market direction
+3. **IV Surface**: Term structure — near-month vs far-month IV differences
+4. **Greeks Breakdown**:
+   - Delta: Directional exposure, probability of ITM
+   - Gamma: Rate of delta change, gamma risk near expiry
+   - Theta: Time decay — how much premium erodes daily
+   - Vega: Volatility sensitivity — impact of IV crush/expansion
+5. **Volatility Regime**: Is the market in low-vol (sell premium) or high-vol (buy premium) regime?
+6. **Event Risk**: Any upcoming events (earnings, RBI policy, expiry) that could cause IV spike?
+
+Recommend whether to BUY premium (directional) or SELL premium (income). Keep under 300 words.`;
+
+const OPTIONS_STRATEGY_SYSTEM = `You are an **Elite Options Strategist** — master of constructing optimal options strategies for Indian F&O markets.
+
+Based on the OI analysis, Greeks/IV analysis, and technical view, recommend the BEST strategy:
+
+For EACH recommended strategy provide:
+1. **Strategy Name**: (e.g., Bull Call Spread, Iron Condor, Naked Put, Calendar Spread, Ratio Spread)
+2. **Legs**: Exact strikes, CE/PE, Buy/Sell, Lot size, Premium ₹
+3. **Net Premium**: Total debit or credit ₹
+4. **Max Profit**: ₹ amount and at what level
+5. **Max Loss**: ₹ amount and at what level
+6. **Breakeven Points**: Exact ₹ levels
+7. **Risk:Reward Ratio**: e.g., 1:2, 1:3
+8. **Probability of Profit**: approximate %
+9. **Trade Type**: Intraday / Swing / Till Expiry
+10. **Holding Duration**: Expected time to hold
+11. **Stop Loss**: When to exit (premium-based or underlying-based)
+12. **Target**: When to book profits
+13. **Adjustments**: What to do if trade goes against you
+
+Recommend 2-3 strategies with different risk profiles:
+- **Aggressive** (high risk, high reward — directional)
+- **Moderate** (balanced — spreads)
+- **Conservative** (low risk, income — premium selling)
+
+Be SPECIFIC with lot sizes for NSE (NIFTY=25, BANKNIFTY=15, stocks=varies). Keep under 400 words.`;
+
+const OPTIONS_RISK_SYSTEM = `You are the **Options Risk Manager** — specialist in F&O risk assessment.
+
+Evaluate the proposed options strategies:
+1. **Margin Requirement**: Approximate margin needed for each strategy
+2. **Max Drawdown**: Worst-case scenario analysis
+3. **Greeks Risk**: Gamma risk near expiry, theta decay timeline, vega risk from IV changes
+4. **Liquidity Risk**: Bid-ask spread concerns, OI liquidity at recommended strikes
+5. **Event Risk**: Impact of upcoming events on the strategy
+6. **Position Sizing**: Recommended capital allocation (% of total portfolio)
+7. **Exit Rules**: 
+   - Stop loss: At what premium loss % to exit
+   - Target: At what profit % to book
+   - Time stop: Exit before expiry if not in profit by when?
+8. **Hedge Recommendations**: How to protect the position if it goes wrong
+9. **Risk Score**: 1-10 for each strategy
+
+Approve, modify, or reject each strategy. Keep under 250 words.`;
+
+const OPTIONS_TECHNICAL_SYSTEM = `You are a **Technical Analyst specializing in Options Trading**. Analyze for OPTIONS STRIKE SELECTION.
+
+Focus on:
+- **Key Support/Resistance**: Exact ₹ levels for strike selection
+- **Trend & Structure**: For directional bias (CE vs PE)
+- **VWAP**: Current position relative to VWAP for intraday options
+- **Volume Profile**: POC, Value Area for identifying key levels
+- **Expected Range**: Based on ATR, what range can the stock move today/this week?
+- **Pattern-based Targets**: Where is price likely heading? This determines strike selection.
+
+Keep analysis focused on helping select the RIGHT strikes and direction. Keep under 200 words.`;
+
+const OPTIONS_TRADER_SYSTEM = `You are the **Options Trade Executor** — FINAL decision-maker for F&O trades.
+
+Based on ALL analysis (OI, Greeks, Strategy, Risk, Technical), provide the FINAL trade recommendation:
+
+**PRIMARY TRADE:**
+- **Strategy**: Name
+- **Direction**: Bullish / Bearish / Neutral
+- **Legs**: Complete details with strikes, CE/PE, Buy/Sell, Lots, Premium
+- **Net Cost/Credit**: ₹
+- **Risk:Reward**: ratio
+- **Max Profit**: ₹ | **Max Loss**: ₹
+- **Breakeven**: ₹ level(s)
+- **Trade Type**: Intraday / Swing (2-5 days) / Till Expiry
+- **Entry**: Now or wait for level ₹X
+- **Stop Loss**: Exit if premium drops/rises to ₹X (or underlying hits ₹X)
+- **Target 1**: Book 50% at ₹X premium
+- **Target 2**: Trail remaining 50%
+- **Confidence**: %
+- **Risk Score**: 1-10
+- **Capital Required**: ₹ (margin + premium)
+
+**ALTERNATIVE TRADE** (if primary doesn't suit risk appetite):
+- Provide a lower-risk alternative
+
+"In options, risk management IS the strategy." Keep under 300 words.`;
+
 // ── Pipeline runners by mode ─────────────────────────────
 
 async function runScalpPipeline(apiKey: string, symbol: string, dataCtx: string, stockData: any, chartImage?: string) {
@@ -479,6 +601,56 @@ async function runInvestPipeline(apiKey: string, symbol: string, dataCtx: string
   };
 }
 
+async function runOptionsPipeline(apiKey: string, symbol: string, dataCtx: string, stockData: any, optionsConfig?: { riskReward?: string; tradeType?: string }) {
+  const M = MODELS.options;
+  const REASONING_HIGH = { effort: "high" };
+  const REASONING_MEDIUM = { effort: "medium" };
+  const rrFilter = optionsConfig?.riskReward || "1:2";
+  const tradeType = optionsConfig?.tradeType || "all"; // intraday, swing, expiry, all
+
+  const configCtx = `\nUser's Risk:Reward preference: minimum ${rrFilter}\nTrade type preference: ${tradeType === 'all' ? 'Show Intraday, Swing (2-5 days), and Till Expiry options' : tradeType}\nToday's date: ${new Date().toISOString().split('T')[0]}`;
+
+  // Step 1: OI Analysis + Greeks/IV in parallel (both use reasoning)
+  const [oiReport, greeksReport] = await Promise.all([
+    callAI(apiKey, OPTIONS_OI_SYSTEM, `Full OI analysis for ${symbol} options.${configCtx}\n${dataCtx}`, M.oiAnalyst, REASONING_HIGH),
+    callAI(apiKey, OPTIONS_GREEKS_SYSTEM, `Greeks and IV analysis for ${symbol} options.${configCtx}\n${dataCtx}`, M.greeksAnalyst),
+  ]);
+
+  await sleep(1000);
+
+  // Step 2: Technical for strike selection
+  const technicalReport = await callAI(apiKey, OPTIONS_TECHNICAL_SYSTEM, `Technical analysis for options strike selection on ${symbol}.\n${dataCtx}`, M.technical);
+
+  await sleep(800);
+
+  // Step 3: Strategy construction WITH REASONING
+  const analystContext = `OI ANALYSIS:\n${oiReport}\n\nGREEKS & IV:\n${greeksReport}\n\nTECHNICAL (for strikes):\n${technicalReport}`;
+  const strategyReport = await callAI(apiKey, OPTIONS_STRATEGY_SYSTEM, `Construct optimal options strategies for ${symbol}.\nRisk:Reward filter: minimum ${rrFilter}\nTrade types needed: ${tradeType}\n${analystContext}\n${dataCtx}${configCtx}`, M.strategist, REASONING_HIGH);
+
+  await sleep(800);
+
+  // Step 4: Risk assessment
+  const riskReport = await callAI(apiKey, OPTIONS_RISK_SYSTEM, `Evaluate options strategies for ${symbol}.\nSTRATEGIES:\n${strategyReport}\n${analystContext}\n${dataCtx}${configCtx}`, M.riskManager);
+
+  await sleep(800);
+
+  // Step 5: Final options trade decision WITH REASONING
+  const traderDecision = await callAI(apiKey, OPTIONS_TRADER_SYSTEM,
+    `Final options trade decision for ${symbol}.\nRisk:Reward minimum: ${rrFilter}\nTrade type: ${tradeType}\n\nOI ANALYSIS:\n${oiReport}\nGREEKS:\n${greeksReport}\nTECHNICAL:\n${technicalReport}\nSTRATEGIES:\n${strategyReport}\nRISK ASSESSMENT:\n${riskReport}\n${dataCtx}`,
+    M.trader, REASONING_HIGH);
+
+  return {
+    agents: {
+      oiAnalysis: oiReport,
+      greeksIV: greeksReport,
+      technical: technicalReport,
+      strategy: strategyReport,
+      riskAssessment: riskReport,
+      optionsTrader: traderDecision,
+    },
+  };
+}
+
 // ── Main Handler ─────────────────────────────────────────
 
 serve(async (req) => {
@@ -486,7 +658,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
-    const { symbol, chartImage, mode = "swing" } = await req.json();
+    const { symbol, chartImage, mode = "swing", optionsConfig } = await req.json();
     if (!symbol) {
       return new Response(JSON.stringify({ error: "Symbol required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -510,6 +682,8 @@ serve(async (req) => {
       result = await runScalpPipeline(LOVABLE_API_KEY, symbol, dataCtx, stockData, chartImage);
     } else if (mode === "invest") {
       result = await runInvestPipeline(LOVABLE_API_KEY, symbol, dataCtx, stockData);
+    } else if (mode === "options") {
+      result = await runOptionsPipeline(LOVABLE_API_KEY, symbol, dataCtx, stockData, optionsConfig);
     } else {
       result = await runSwingPipeline(LOVABLE_API_KEY, symbol, dataCtx, stockData, chartImage);
     }

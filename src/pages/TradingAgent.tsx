@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
-import { Copy, Download, ChevronDown, Check, Image as ImageIcon, X, Zap, TrendingUp, Landmark } from 'lucide-react';
+import { Copy, Download, ChevronDown, Check, Image as ImageIcon, X, Zap, TrendingUp, Landmark, Target } from 'lucide-react';
 
 const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
-type TradeMode = 'scalp' | 'swing' | 'invest';
+type TradeMode = 'scalp' | 'swing' | 'invest' | 'options';
 
 interface AgentResult {
   symbol: string;
@@ -70,6 +70,21 @@ const MODE_CONFIG: Record<TradeMode, {
       { key: 'architect', label: 'Portfolio Architect', icon: '👑', agents: ['portfolioArchitect'], statusText: 'Buffett making final call...' },
     ],
   },
+  options: {
+    label: 'Options & F&O',
+    subtitle: 'OI analysis, Greeks, IV, strategies with risk-reward',
+    icon: <Target className="w-5 h-5" />,
+    color: 'text-[hsl(var(--terminal-purple))]',
+    borderColor: 'border-[hsl(var(--terminal-purple))]/30',
+    bgColor: 'bg-[hsl(var(--terminal-purple))]/10',
+    steps: [
+      { key: 'oi-greeks', label: 'OI & Greeks Analysis', icon: '📊', agents: ['oiAnalysis', 'greeksIV'], statusText: 'Deep OI & IV scanning...' },
+      { key: 'technical', label: 'Strike Selection', icon: '🎯', agents: ['technical'], statusText: 'Identifying key levels...' },
+      { key: 'strategy', label: 'Strategy Builder', icon: '🏗️', agents: ['strategy'], statusText: 'Constructing strategies...' },
+      { key: 'risk', label: 'Risk Assessment', icon: '🛡️', agents: ['riskAssessment'], statusText: 'Evaluating risk-reward...' },
+      { key: 'trader', label: 'Options Trader', icon: '💎', agents: ['optionsTrader'], statusText: 'Final trade decision...' },
+    ],
+  },
 };
 
 const AGENT_META: Record<string, { label: string; icon: string }> = {
@@ -89,9 +104,15 @@ const AGENT_META: Record<string, { label: string; icon: string }> = {
   portfolioManager: { label: 'Portfolio Manager', icon: '🏛️' },
   investmentManager: { label: 'Investment Committee', icon: '🏛️' },
   portfolioArchitect: { label: 'Portfolio Architect', icon: '👑' },
+  oiAnalysis: { label: 'OI Analyst', icon: '📊' },
+  greeksIV: { label: 'Greeks & IV', icon: '🔬' },
+  strategy: { label: 'Strategy Builder', icon: '🏗️' },
+  riskAssessment: { label: 'Risk Assessment', icon: '🛡️' },
+  optionsTrader: { label: 'Options Trader', icon: '💎' },
+  technical: { label: 'Technical (Strikes)', icon: '🎯' },
 };
 
-const FULL_SPAN_AGENTS = new Set(['researchManager', 'traderDecision', 'portfolioManager', 'riskCheck', 'investmentManager', 'portfolioArchitect']);
+const FULL_SPAN_AGENTS = new Set(['researchManager', 'traderDecision', 'portfolioManager', 'riskCheck', 'investmentManager', 'portfolioArchitect', 'strategy', 'riskAssessment', 'optionsTrader']);
 
 /* ── Image compression ─────────────────────────── */
 function compressImage(file: File, maxSize = 800): Promise<string> {
@@ -124,7 +145,7 @@ function compressImage(file: File, maxSize = 800): Promise<string> {
 /* ── Helpers ─────────────────────────── */
 function extractVerdict(agents: Record<string, string>, mode: TradeMode) {
   // Pick the final agent based on mode
-  const finalKey = mode === 'scalp' ? 'traderDecision' : mode === 'invest' ? 'portfolioArchitect' : 'portfolioManager';
+  const finalKey = mode === 'scalp' ? 'traderDecision' : mode === 'invest' ? 'portfolioArchitect' : mode === 'options' ? 'optionsTrader' : 'portfolioManager';
   const pm = agents[finalKey] || '';
   let action: 'BUY' | 'SELL' | 'HOLD' | 'INVEST' | 'PASS' = 'HOLD';
   const upper = pm.toUpperCase();
@@ -133,6 +154,10 @@ function extractVerdict(agents: Record<string, string>, mode: TradeMode) {
     if (upper.includes('INVEST') && !upper.includes('DON\'T INVEST')) action = 'INVEST';
     else if (upper.includes('PASS') || upper.includes('AVOID')) action = 'PASS';
     else if (upper.includes('BUY') || upper.includes('ACCUMULATE')) action = 'BUY';
+  } else if (mode === 'options') {
+    if (upper.includes('BUY') || upper.includes('BULL') || upper.includes('CALL')) action = 'BUY';
+    else if (upper.includes('SELL') || upper.includes('BEAR') || upper.includes('PUT') || upper.includes('SHORT')) action = 'SELL';
+    else if (upper.includes('NEUTRAL') || upper.includes('IRON CONDOR') || upper.includes('STRANGLE')) action = 'HOLD';
   } else {
     if (upper.includes('STRONG BUY') || (upper.includes('BUY') && !upper.includes('DON\'T BUY'))) action = 'BUY';
     else if (upper.includes('SELL') || upper.includes('SHORT')) action = 'SELL';
@@ -146,13 +171,19 @@ function extractVerdict(agents: Record<string, string>, mode: TradeMode) {
   const confMatch = pm.match(/confidence[:\s]*(\d+)\s*%?/i);
   if (confMatch) confidence = Math.min(100, Math.max(0, parseInt(confMatch[1])));
 
-  // Extract holding duration
   let duration = '';
-  const durMatch = pm.match(/(?:hold(?:ing)?|duration|horizon|time)[:\s]*([^\n,]+)/i);
+  const durMatch = pm.match(/(?:hold(?:ing)?|duration|horizon|time|type)[:\s]*([^\n,]+)/i);
   if (durMatch) duration = durMatch[1].trim();
 
+  // Extract strategy name for options mode
+  let strategy = '';
+  if (mode === 'options') {
+    const stratMatch = pm.match(/(?:strategy|primary)[:\s]*\**([^\n*]+)/i);
+    if (stratMatch) strategy = stratMatch[1].trim();
+  }
+
   const summary = pm.split(/[.\n]/)[0]?.trim() || 'Analysis complete.';
-  return { action, riskScore, confidence, summary, duration };
+  return { action, riskScore, confidence, summary, duration, strategy };
 }
 
 function detectSentiment(content: string): 'bullish' | 'bearish' | 'neutral' {
@@ -214,7 +245,7 @@ function VerdictCard({ agents, stockData, symbol, hasChartAnalysis, mode }: { ag
   };
   const ac = actionColors[action] || actionColors.HOLD;
 
-  const modeLabels: Record<TradeMode, string> = { scalp: '⚡ SCALP', swing: '📈 SWING', invest: '🏦 INVEST' };
+  const modeLabels: Record<TradeMode, string> = { scalp: '⚡ SCALP', swing: '📈 SWING', invest: '🏦 INVEST', options: '🎯 OPTIONS' };
 
   const copyVerdict = () => {
     const text = `${symbol} [${config.label}] — ${action}\nRisk: ${riskScore}/10 | Confidence: ${confidence}%${duration ? ` | Duration: ${duration}` : ''}\n${summary}`;
@@ -447,9 +478,9 @@ function AgentReportCard({ agentKey, content, delay, forceExpand }: { agentKey: 
 
 /* ── Mode Selector ─────────────────────────── */
 function ModeSelector({ mode, setMode, disabled }: { mode: TradeMode; setMode: (m: TradeMode) => void; disabled: boolean }) {
-  const modes: TradeMode[] = ['scalp', 'swing', 'invest'];
+  const modes: TradeMode[] = ['scalp', 'swing', 'invest', 'options'];
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
       {modes.map(m => {
         const cfg = MODE_CONFIG[m];
         const active = mode === m;
@@ -458,27 +489,19 @@ function ModeSelector({ mode, setMode, disabled }: { mode: TradeMode; setMode: (
             key={m}
             onClick={() => !disabled && setMode(m)}
             disabled={disabled}
-            className={`relative rounded-xl sm:rounded-2xl border-2 p-2.5 sm:p-4 text-left transition-all duration-300 ${
+            className={`relative rounded-xl sm:rounded-2xl border-2 p-2.5 sm:p-3 text-left transition-all duration-300 ${
               active
                 ? `${cfg.borderColor} ${cfg.bgColor} shadow-lg`
                 : 'border-border/20 bg-card/30 hover:bg-card/50 hover:border-border/40'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {active && (
-              <motion.div layoutId="mode-indicator" className="absolute inset-0 rounded-xl sm:rounded-2xl border-2 border-primary/20 pointer-events-none" />
-            )}
-            <div className="flex items-center gap-1.5 sm:gap-3 mb-1 sm:mb-2">
-              <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${active ? cfg.bgColor : 'bg-secondary/40'} ${active ? cfg.color : 'text-muted-foreground'} transition-colors`}>
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+              <div className={`p-1 sm:p-1.5 rounded-lg ${active ? cfg.bgColor : 'bg-secondary/40'} ${active ? cfg.color : 'text-muted-foreground'} transition-colors`}>
                 {cfg.icon}
               </div>
-              <h3 className={`text-[10px] sm:text-sm font-bold leading-tight ${active ? 'text-foreground' : 'text-muted-foreground'} transition-colors`}>{cfg.label}</h3>
+              <h3 className={`text-[9px] sm:text-[11px] font-bold leading-tight ${active ? 'text-foreground' : 'text-muted-foreground'} transition-colors`}>{cfg.label}</h3>
             </div>
-            <p className="text-[7px] sm:text-[9px] text-muted-foreground leading-relaxed hidden sm:block">{cfg.subtitle}</p>
-            <div className="mt-1 sm:mt-2 flex flex-wrap gap-0.5 sm:gap-1 hidden sm:flex">
-              {cfg.steps.map(s => (
-                <span key={s.key} className="text-[6px] sm:text-[7px] px-1 sm:px-1.5 py-0.5 rounded bg-secondary/40 text-muted-foreground">{s.icon}</span>
-              ))}
-            </div>
+            <p className="text-[7px] sm:text-[8px] text-muted-foreground leading-relaxed hidden sm:block">{cfg.subtitle}</p>
           </button>
         );
       })}
@@ -516,6 +539,9 @@ export default function TradingAgent() {
   const [chartImage, setChartImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  // Options-specific config
+  const [riskReward, setRiskReward] = useState('1:2');
+  const [optionsTradeType, setOptionsTradeType] = useState('all');
 
   const handleImageFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) { toast.error('Please upload an image file'); return; }
@@ -568,7 +594,18 @@ export default function TradingAgent() {
           clearInterval(stepTimer);
           return prev;
         });
-      }, mode === 'scalp' ? 4000 : 5000);
+      }, mode === 'scalp' ? 4000 : mode === 'options' ? 6000 : 5000);
+
+      const bodyPayload: any = {
+        symbol: symbol.toUpperCase().trim(),
+        mode,
+      };
+      if (mode !== 'invest' && mode !== 'options' && chartImage) {
+        bodyPayload.chartImage = chartImage;
+      }
+      if (mode === 'options') {
+        bodyPayload.optionsConfig = { riskReward, tradeType: optionsTradeType };
+      }
 
       const resp = await fetch(`${FUNCTIONS_URL}/trading-agent`, {
         method: 'POST',
@@ -576,11 +613,7 @@ export default function TradingAgent() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({
-          symbol: symbol.toUpperCase().trim(),
-          chartImage: mode !== 'invest' ? (chartImage || undefined) : undefined,
-          mode,
-        }),
+        body: JSON.stringify(bodyPayload),
       });
 
       clearInterval(stepTimer);
@@ -654,7 +687,7 @@ export default function TradingAgent() {
             />
           </div>
           <div className="flex items-center gap-2">
-            {mode !== 'invest' && (
+            {mode !== 'invest' && mode !== 'options' && (
               <>
                 <input type="file" ref={fileInputRef} accept="image/*" className="hidden"
                   onChange={async (e) => { const f = e.target.files?.[0]; if (f) await handleImageFile(f); if (fileInputRef.current) fileInputRef.current.value = ''; }} />
@@ -690,7 +723,7 @@ export default function TradingAgent() {
       </div>
 
       {/* Chart upload section - only for scalp/swing */}
-      {mode !== 'invest' && (
+      {mode !== 'invest' && mode !== 'options' && (
         <div className="rounded-xl sm:rounded-2xl bg-card/50 border border-border/15 p-3 sm:p-4 mb-4">
           <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <span className="text-sm sm:text-base">📸</span>
@@ -767,6 +800,51 @@ export default function TradingAgent() {
         </div>
       )}
 
+      {/* Options mode config */}
+      {mode === 'options' && !loading && !result && (
+        <div className="rounded-xl sm:rounded-2xl bg-card/50 border border-[hsl(var(--terminal-purple))]/15 p-3 sm:p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🎯</span>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-foreground mb-1">Options & F&O Agent</h3>
+              <p className="text-[10px] text-muted-foreground leading-relaxed mb-3">
+                Full options analysis: OI patterns, Greeks & IV, strategy construction with risk-reward filtering. No chart needed — pure data-driven F&O analysis.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider mb-1 block">Min Risk:Reward</label>
+                  <div className="flex gap-1.5">
+                    {['1:1.5', '1:2', '1:3', '1:4'].map(rr => (
+                      <button key={rr} onClick={() => setRiskReward(rr)}
+                        className={`px-2.5 py-1.5 text-[9px] font-bold rounded-lg border transition-all ${riskReward === rr ? 'bg-[hsl(var(--terminal-purple))]/15 border-[hsl(var(--terminal-purple))]/40 text-[hsl(var(--terminal-purple))]' : 'bg-secondary/30 border-border/20 text-muted-foreground hover:text-foreground'}`}>
+                        {rr}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider mb-1 block">Trade Type</label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[{ k: 'all', l: 'All' }, { k: 'intraday', l: 'Intraday' }, { k: 'swing', l: 'Swing' }, { k: 'expiry', l: 'Till Expiry' }].map(t => (
+                      <button key={t.k} onClick={() => setOptionsTradeType(t.k)}
+                        className={`px-2.5 py-1.5 text-[9px] font-bold rounded-lg border transition-all ${optionsTradeType === t.k ? 'bg-[hsl(var(--terminal-purple))]/15 border-[hsl(var(--terminal-purple))]/40 text-[hsl(var(--terminal-purple))]' : 'bg-secondary/30 border-border/20 text-muted-foreground hover:text-foreground'}`}>
+                        {t.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-[8px] px-2 py-1 rounded-lg bg-[hsl(var(--terminal-purple))]/10 text-[hsl(var(--terminal-purple))] border border-[hsl(var(--terminal-purple))]/20 font-semibold">📊 OI Analysis</span>
+                <span className="text-[8px] px-2 py-1 rounded-lg bg-[hsl(var(--terminal-purple))]/10 text-[hsl(var(--terminal-purple))] border border-[hsl(var(--terminal-purple))]/20 font-semibold">🔬 Greeks & IV</span>
+                <span className="text-[8px] px-2 py-1 rounded-lg bg-[hsl(var(--terminal-purple))]/10 text-[hsl(var(--terminal-purple))] border border-[hsl(var(--terminal-purple))]/20 font-semibold">🏗️ Strategy Builder</span>
+                <span className="text-[8px] px-2 py-1 rounded-lg bg-[hsl(var(--terminal-purple))]/10 text-[hsl(var(--terminal-purple))] border border-[hsl(var(--terminal-purple))]/20 font-semibold">🛡️ Risk-Reward Filter</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Invest mode info */}
       {mode === 'invest' && !loading && !result && (
         <div className="rounded-2xl bg-card/50 border border-primary/15 p-4 mb-4">
@@ -792,7 +870,9 @@ export default function TradingAgent() {
       {/* Quick symbols */}
       {!loading && !result && (
         <div className="flex flex-wrap gap-1 sm:gap-1.5 mb-4">
-          {(mode === 'invest'
+          {(mode === 'options'
+            ? ['NIFTY 50', 'BANKNIFTY', 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK']
+            : mode === 'invest'
             ? ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ASIANPAINT', 'NESTLEIND']
             : ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS']
           ).map(s => (
