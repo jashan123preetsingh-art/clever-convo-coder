@@ -46,7 +46,7 @@ function buildFallbackReport(symbol: string, stockData: Awaited<ReturnType<typeo
   if (!stockData) {
     return `# 🤖 Multi-Agent Analysis: ${symbol}
 
-⚠️ StockPulse AI is busy right now, so this fallback report uses limited live market data only.
+⚠️ Trade Arsenal AI is busy right now, so this fallback report uses limited live market data only.
 
 ## 📊 Analyst Reports
 
