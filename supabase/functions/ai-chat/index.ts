@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const CHAT_BUSY_MESSAGE = "⚠️ StockPulse AI is busy right now. Please retry in a moment. For full stock reports, you can also use the Trading Agent page.";
+const CHAT_BUSY_MESSAGE = "⚠️ Trade Arsenal AI is busy right now. Please retry in a moment. For full stock reports, you can also use the Trading Agent page.";
 
 function isRateLimitError(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
@@ -46,7 +46,7 @@ function buildFallbackReport(symbol: string, stockData: Awaited<ReturnType<typeo
   if (!stockData) {
     return `# 🤖 Multi-Agent Analysis: ${symbol}
 
-⚠️ StockPulse AI is busy right now, so this fallback report uses limited live market data only.
+⚠️ Trade Arsenal AI is busy right now, so this fallback report uses limited live market data only.
 
 ## 📊 Analyst Reports
 
@@ -95,7 +95,7 @@ Wait for the full AI workflow to evaluate downside risks.
   return `# 🤖 Multi-Agent Analysis: ${symbol}
 **Current Price:** ${formatCurrency(stockData.price)} (${stockData.changePct >= 0 ? "+" : ""}${stockData.changePct?.toFixed(2)}%)
 
-⚠️ StockPulse AI is busy right now, so this fallback report is generated from live market data instead of the full AI workflow.
+⚠️ Trade Arsenal AI is busy right now, so this fallback report is generated from live market data instead of the full AI workflow.
 
 ---
 
@@ -225,7 +225,7 @@ async function runMultiAgent(apiKey: string, symbol: string): Promise<string> {
   try {
     return await callAI(
       apiKey,
-      `You are StockPulse AI running an internal multi-agent workflow for Indian stocks.
+      `You are Trade Arsenal AI running an internal multi-agent workflow for Indian stocks.
 Return ONE markdown report with these exact sections and headings:
 # 🤖 Multi-Agent Analysis: {SYMBOL}
 ## 📊 Analyst Reports
@@ -258,7 +258,7 @@ Requirements:
   }
 }
 
-const SYSTEM_PROMPT = `You are StockPulse AI — an expert Indian stock market analyst, options strategist, and chart analyst with access to REAL-TIME market data.
+const SYSTEM_PROMPT = `You are Trade Arsenal AI — an expert Indian stock market analyst, options strategist, and chart analyst with access to REAL-TIME market data.
 
 You help traders with:
 1. **Chart Analysis**: Price action, support/resistance, trend analysis, candlestick patterns, MAs, RSI, MACD, Bollinger Bands, volume. When a user uploads a chart image, analyze it thoroughly — identify patterns, key levels, trend direction, and give actionable insights.

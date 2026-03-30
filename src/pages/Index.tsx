@@ -52,9 +52,9 @@ export default function Index() {
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--terminal-cyan))] flex items-center justify-center shadow-lg">
-              <span className="text-[10px] font-black text-primary-foreground tracking-tight">SP</span>
+              <span className="text-[10px] font-black text-primary-foreground tracking-tight">TA</span>
             </div>
-            <span className="text-sm font-black text-foreground tracking-wide">StockPulse</span>
+            <span className="text-sm font-black text-foreground tracking-wide">Trade Arsenal</span>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth" className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
@@ -175,7 +175,7 @@ export default function Index() {
             Trade Smarter.<br /><span className="text-gradient-primary">Starting Now.</span>
           </h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-10 leading-relaxed">
-            Join thousands of traders using StockPulse to analyze markets, spot opportunities, and execute with confidence.
+            Join thousands of traders using Trade Arsenal to analyze markets, spot opportunities, and execute with confidence.
           </p>
           <Link to="/auth"
             className="inline-flex items-center gap-2 px-10 py-4 rounded-2xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xl shadow-primary/25">
@@ -189,11 +189,11 @@ export default function Index() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--terminal-cyan))] flex items-center justify-center">
-              <span className="text-[7px] font-black text-primary-foreground">SP</span>
+              <span className="text-[7px] font-black text-primary-foreground">TA</span>
             </div>
-            <span className="text-xs font-bold text-foreground">StockPulse</span>
+            <span className="text-xs font-bold text-foreground">Trade Arsenal</span>
           </div>
-          <p className="text-[10px] text-muted-foreground">© {new Date().getFullYear()} StockPulse. Built for Indian F&O traders.</p>
+          <p className="text-[10px] text-muted-foreground">© {new Date().getFullYear()} Trade Arsenal. Built for Indian F&O traders.</p>
         </div>
       </footer>
     </div>

@@ -187,7 +187,7 @@ export default function CommandPalette() {
                 <span>↵ Select</span>
                 <span>ESC Close</span>
               </div>
-              <span className="text-[8px] text-primary font-semibold">StockPulse</span>
+              <span className="text-[8px] text-primary font-semibold">Trade Arsenal</span>
             </div>
           </motion.div>
         </motion.div>

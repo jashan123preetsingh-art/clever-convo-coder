@@ -99,10 +99,10 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
           {/* Logo - refined */}
           <Link to="/" className="flex items-center gap-2 md:gap-3 group">
             <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--terminal-cyan))] flex items-center justify-center shadow-lg shadow-primary/15 group-hover:shadow-primary/25 transition-shadow">
-              <span className="text-[9px] md:text-[10px] font-black text-primary-foreground tracking-tight">SP</span>
+              <span className="text-[9px] md:text-[10px] font-black text-primary-foreground tracking-tight">TA</span>
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="text-[13px] font-black text-foreground tracking-wide leading-none">StockPulse</span>
+              <span className="text-[13px] font-black text-foreground tracking-wide leading-none">Trade Arsenal</span>
               <span className="text-[8px] text-primary font-semibold tracking-[0.15em] leading-none mt-0.5">TERMINAL</span>
             </div>
           </Link>
@@ -340,7 +340,7 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
           <span className="text-[9px] text-muted-foreground/40">
             {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
           </span>
-          <span className="text-[9px] text-primary/60 font-semibold">StockPulse v3.2</span>
+          <span className="text-[9px] text-primary/60 font-semibold">Trade Arsenal v3.2</span>
         </div>
       </footer>
 

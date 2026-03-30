@@ -24,7 +24,7 @@ const SUGGESTIONS = [
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 
-const FRIENDLY_RATE_LIMIT_MESSAGE = '⚠️ StockPulse AI is busy right now. Please retry in a moment, or use the Trading Agent page for a full report.';
+const FRIENDLY_RATE_LIMIT_MESSAGE = '⚠️ Trade Arsenal AI is busy right now. Please retry in a moment, or use the Trading Agent page for a full report.';
 
 const normalizeAssistantError = (message?: string) => {
   const rawMessage = message?.trim() || 'Something went wrong. Please try again.';
@@ -283,7 +283,7 @@ export default function AiAssistant() {
                 <span className="text-[10px] font-black text-primary-foreground">AI</span>
               </div>
               <div className="flex-1">
-                <p className="text-[12px] font-bold text-foreground">StockPulse AI</p>
+                <p className="text-[12px] font-bold text-foreground">Trade Arsenal AI</p>
                 <div className="flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${hasLiveData ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
                   <p className="text-[9px] text-muted-foreground">

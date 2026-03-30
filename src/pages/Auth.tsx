@@ -54,9 +54,9 @@ export default function Auth() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--terminal-cyan))] flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-lg font-black text-primary-foreground">SP</span>
+            <span className="text-lg font-black text-primary-foreground">TA</span>
           </div>
-          <h1 className="text-2xl font-black text-foreground tracking-wide">StockPulse</h1>
+          <h1 className="text-2xl font-black text-foreground tracking-wide">Trade Arsenal</h1>
           <p className="text-sm text-muted-foreground mt-1">Indian Market Intelligence Terminal</p>
         </div>
 

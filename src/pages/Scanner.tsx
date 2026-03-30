@@ -396,6 +396,42 @@ const DEFAULT_SCANS: ScanPreset[] = [
       { measure: 'debt_to_equity', operator: '<', compareType: 'number', value: '0.5', compareMeasure: '', multiplier: 1 },
     ] },
 
+  // ─── VWAP ───
+  { id: 'vw1', name: 'VWAP Bounce – Bullish', description: 'Price dipped below VWAP & bounced back with volume', icon: '📐', category: 'vwap',
+    conditions: [
+      { measure: 'low', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.995 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.003 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+  { id: 'vw2', name: 'VWAP Bounce – Bearish', description: 'Price spiked above VWAP & rejected down', icon: '📉', category: 'vwap',
+    conditions: [
+      { measure: 'high', operator: '>', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 1.005 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'open', multiplier: 0.997 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.0 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+  { id: 'vw3', name: 'VWAP Reclaim', description: 'Price reclaiming VWAP zone with strong volume', icon: '🔄', category: 'vwap',
+    conditions: [
+      { measure: 'open', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.998 },
+      { measure: 'close', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.005 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'vw4', name: 'VWAP Hold + Breakout', description: 'Held VWAP support and breaking out with momentum', icon: '🚀', category: 'vwap',
+    conditions: [
+      { measure: 'low', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.99 },
+      { measure: 'close', operator: '>=', compareType: 'measure', value: '', compareMeasure: 'high', multiplier: 0.995 },
+      { measure: 'change_pct', operator: '>', compareType: 'number', value: '1', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.5 },
+    ] },
+  { id: 'vw5', name: 'VWAP Rejection Short', description: 'Failed to hold above VWAP – short setup', icon: '⬇️', category: 'vwap',
+    conditions: [
+      { measure: 'open', operator: '>', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 1.002 },
+      { measure: 'close', operator: '<', compareType: 'measure', value: '', compareMeasure: 'prev_close', multiplier: 0.998 },
+      { measure: 'change_pct', operator: '<', compareType: 'number', value: '-0.5', compareMeasure: '', multiplier: 1 },
+      { measure: 'volume', operator: '>', compareType: 'measure', value: '', compareMeasure: 'avg_volume_10d', multiplier: 1.3 },
+    ] },
+
   // ─── SWING ───
   { id: 'sw1', name: 'Swing Trading – Large Cap', description: 'RSI sweet spot + volume on large caps', icon: '🔄', category: 'swing',
     conditions: [
@@ -447,6 +483,7 @@ const CATEGORIES = [
   { key: 'candle', label: 'Candlestick', icon: '🕯️', color: 'text-[hsl(var(--terminal-purple))]' },
   { key: 'intraday', label: 'Intraday', icon: '📈', color: 'text-[hsl(var(--terminal-cyan))]' },
   { key: 'volume', label: 'Volume', icon: '🌊', color: 'text-[hsl(var(--terminal-blue))]' },
+  { key: 'vwap', label: 'VWAP', icon: '📐', color: 'text-[hsl(var(--terminal-amber))]' },
   { key: 'swing', label: 'Swing', icon: '🔄', color: 'text-accent' },
   { key: 'quality', label: 'Quality', icon: '💎', color: 'text-[hsl(var(--terminal-purple))]' },
   { key: 'value', label: 'Value', icon: '🏷️', color: 'text-primary' },
@@ -461,6 +498,7 @@ const CATEGORY_ACCENT: Record<string, string> = {
   candle: 'border-l-[hsl(var(--terminal-purple))]',
   intraday: 'border-l-[hsl(var(--terminal-cyan))]',
   volume: 'border-l-[hsl(var(--terminal-blue))]',
+  vwap: 'border-l-[hsl(var(--terminal-amber))]',
   swing: 'border-l-[hsl(var(--terminal-amber))]',
   quality: 'border-l-[hsl(var(--terminal-purple))]',
   value: 'border-l-primary',
