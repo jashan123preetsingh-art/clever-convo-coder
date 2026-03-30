@@ -39,35 +39,61 @@ const MAX_RISK_ROUNDS = 1;
 
 // ── Helpers ──────────────────────────────────────────────
 
+async function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function callAIRaw(
+  apiKey: string,
+  system: string,
+  user: string | Array<any>,
+  model: string
+): Promise<string> {
+  const userContent = typeof user === "string" ? user : user;
+  const messages = [
+    { role: "system", content: system },
+    { role: "user", content: userContent },
+  ];
+
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const resp = await fetch(AI_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model, messages, stream: false }),
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      return data.choices?.[0]?.message?.content || "No response";
+    }
+
+    if (resp.status === 429 && attempt < MAX_RETRIES) {
+      const delay = Math.pow(2, attempt + 1) * 1000 + Math.random() * 1000;
+      console.log(`Rate limited (${model}), retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+      await sleep(delay);
+      continue;
+    }
+
+    if (resp.status === 429) throw new Error("RATE_LIMITED");
+    if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
+    const t = await resp.text();
+    throw new Error(`AI error ${resp.status}: ${t}`);
+  }
+  throw new Error("Max retries exceeded");
+}
+
 async function callAI(
   apiKey: string,
   system: string,
   user: string,
   model: string
 ): Promise<string> {
-  const resp = await fetch(AI_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      stream: false,
-    }),
-  });
-  if (!resp.ok) {
-    if (resp.status === 429) throw new Error("RATE_LIMITED");
-    if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
-    const t = await resp.text();
-    throw new Error(`AI error ${resp.status}: ${t}`);
-  }
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content || "No response";
+  return callAIRaw(apiKey, system, user, model);
+}
 }
 
 // Call AI with image (multimodal)
@@ -78,35 +104,11 @@ async function callAIWithImage(
   imageUrl: string,
   model: string
 ): Promise<string> {
-  const resp = await fetch(AI_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: userText },
-            { type: "image_url", image_url: { url: imageUrl } },
-          ],
-        },
-      ],
-      stream: false,
-    }),
-  });
-  if (!resp.ok) {
-    if (resp.status === 429) throw new Error("RATE_LIMITED");
-    if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
-    const t = await resp.text();
-    throw new Error(`AI error ${resp.status}: ${t}`);
-  }
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content || "No response";
+  return callAIRaw(apiKey, system, [
+    { type: "text", text: userText },
+    { type: "image_url", image_url: { url: imageUrl } },
+  ], model);
+}
 }
 
 async function fetchStockData(symbol: string) {
@@ -270,6 +272,7 @@ serve(async (req) => {
       : `Stock: ${symbol} (limited data)`;
 
     // ── Step 2: Analyst Team (parallel) ──
+    // Run analysts in 2 batches of 2 to reduce rate limit pressure
     const marketReportPromise = hasChart
       ? callAIWithImage(
           LOVABLE_API_KEY,
@@ -280,13 +283,17 @@ serve(async (req) => {
         )
       : callAI(LOVABLE_API_KEY, MARKET_ANALYST_SYSTEM, `Analyze ${symbol}. ${dataCtx}`, MODEL_MARKET_ANALYST);
 
-    const [marketReport, sentimentReport, newsReport, fundamentalsReport] =
-      await Promise.all([
-        marketReportPromise,
-        callAI(LOVABLE_API_KEY, SENTIMENT_ANALYST_SYSTEM, `Sentiment for ${symbol}. ${dataCtx}`, MODEL_SENTIMENT),
-        callAI(LOVABLE_API_KEY, NEWS_ANALYST_SYSTEM, `News analysis for ${symbol}. ${dataCtx}`, MODEL_NEWS),
-        callAI(LOVABLE_API_KEY, FUNDAMENTALS_ANALYST_SYSTEM, `Fundamentals for ${symbol}. ${dataCtx}`, MODEL_FUNDAMENTALS),
-      ]);
+    const [marketReport, sentimentReport] = await Promise.all([
+      marketReportPromise,
+      callAI(LOVABLE_API_KEY, SENTIMENT_ANALYST_SYSTEM, `Sentiment for ${symbol}. ${dataCtx}`, MODEL_SENTIMENT),
+    ]);
+
+    await sleep(1000); // Brief pause between batches
+
+    const [newsReport, fundamentalsReport] = await Promise.all([
+      callAI(LOVABLE_API_KEY, NEWS_ANALYST_SYSTEM, `News analysis for ${symbol}. ${dataCtx}`, MODEL_NEWS),
+      callAI(LOVABLE_API_KEY, FUNDAMENTALS_ANALYST_SYSTEM, `Fundamentals for ${symbol}. ${dataCtx}`, MODEL_FUNDAMENTALS),
+    ]);
 
     const chartNote = hasChart ? "\n\n[NOTE: The Market/Technical Analyst had access to a user-uploaded chart image and performed visual chart pattern analysis in addition to numerical data analysis.]" : "";
     const analystContext = `MARKET/TECHNICAL REPORT${hasChart ? ' (includes visual chart analysis)' : ''}:\n${marketReport}\n\nSENTIMENT REPORT:\n${sentimentReport}\n\nNEWS REPORT:\n${newsReport}\n\nFUNDAMENTALS REPORT:\n${fundamentalsReport}${chartNote}`;
