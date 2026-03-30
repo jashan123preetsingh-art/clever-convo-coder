@@ -20,9 +20,20 @@ const corsHeaders = {
 };
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const QUICK_MODEL = "google/gemini-3-flash-preview";
-const DEEP_MODEL = "google/gemini-2.5-pro";
-const VISION_MODEL = "google/gemini-2.5-pro";
+// ── Model assignments per agent ──
+const MODEL_MARKET_ANALYST = "google/gemini-2.5-pro";        // Vision + complex TA
+const MODEL_SENTIMENT      = "google/gemini-2.5-flash";      // Fast multimodal
+const MODEL_NEWS            = "google/gemini-3-flash-preview"; // Latest gen balance
+const MODEL_FUNDAMENTALS    = "google/gemini-3.1-pro-preview"; // Latest reasoning
+const MODEL_BULL            = "openai/gpt-5";                 // Best reasoning
+const MODEL_BEAR            = "openai/gpt-5.2";               // Enhanced reasoning
+const MODEL_RESEARCH_MGR    = "google/gemini-2.5-pro";        // Top-tier judge
+const MODEL_TRADER          = "google/gemini-2.5-flash";      // Fast precision
+const MODEL_RISK_AGGRESSIVE = "openai/gpt-5";                 // Best reasoning
+const MODEL_RISK_CONSERVATIVE = "openai/gpt-5.2";            // Enhanced reasoning
+const MODEL_RISK_NEUTRAL    = "google/gemini-3-flash-preview"; // Balanced
+const MODEL_PORTFOLIO_MGR   = "openai/gpt-5";                 // Final decision
+
 const MAX_DEBATE_ROUNDS = 1;
 const MAX_RISK_ROUNDS = 1;
 
