@@ -478,9 +478,9 @@ function AgentReportCard({ agentKey, content, delay, forceExpand }: { agentKey: 
 
 /* ── Mode Selector ─────────────────────────── */
 function ModeSelector({ mode, setMode, disabled }: { mode: TradeMode; setMode: (m: TradeMode) => void; disabled: boolean }) {
-  const modes: TradeMode[] = ['scalp', 'swing', 'invest'];
+  const modes: TradeMode[] = ['scalp', 'swing', 'invest', 'options'];
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
       {modes.map(m => {
         const cfg = MODE_CONFIG[m];
         const active = mode === m;
@@ -489,25 +489,25 @@ function ModeSelector({ mode, setMode, disabled }: { mode: TradeMode; setMode: (
             key={m}
             onClick={() => !disabled && setMode(m)}
             disabled={disabled}
-            className={`relative rounded-xl sm:rounded-2xl border-2 p-2.5 sm:p-4 text-left transition-all duration-300 ${
+            className={`relative rounded-xl sm:rounded-2xl border-2 p-2.5 sm:p-3 text-left transition-all duration-300 ${
               active
                 ? `${cfg.borderColor} ${cfg.bgColor} shadow-lg`
                 : 'border-border/20 bg-card/30 hover:bg-card/50 hover:border-border/40'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {active && (
-              <motion.div layoutId="mode-indicator" className="absolute inset-0 rounded-xl sm:rounded-2xl border-2 border-primary/20 pointer-events-none" />
-            )}
-            <div className="flex items-center gap-1.5 sm:gap-3 mb-1 sm:mb-2">
-              <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${active ? cfg.bgColor : 'bg-secondary/40'} ${active ? cfg.color : 'text-muted-foreground'} transition-colors`}>
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+              <div className={`p-1 sm:p-1.5 rounded-lg ${active ? cfg.bgColor : 'bg-secondary/40'} ${active ? cfg.color : 'text-muted-foreground'} transition-colors`}>
                 {cfg.icon}
               </div>
-              <h3 className={`text-[10px] sm:text-sm font-bold leading-tight ${active ? 'text-foreground' : 'text-muted-foreground'} transition-colors`}>{cfg.label}</h3>
+              <h3 className={`text-[9px] sm:text-[11px] font-bold leading-tight ${active ? 'text-foreground' : 'text-muted-foreground'} transition-colors`}>{cfg.label}</h3>
             </div>
-            <p className="text-[7px] sm:text-[9px] text-muted-foreground leading-relaxed hidden sm:block">{cfg.subtitle}</p>
-            <div className="mt-1 sm:mt-2 flex flex-wrap gap-0.5 sm:gap-1 hidden sm:flex">
-              {cfg.steps.map(s => (
-                <span key={s.key} className="text-[6px] sm:text-[7px] px-1 sm:px-1.5 py-0.5 rounded bg-secondary/40 text-muted-foreground">{s.icon}</span>
+            <p className="text-[7px] sm:text-[8px] text-muted-foreground leading-relaxed hidden sm:block">{cfg.subtitle}</p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
               ))}
             </div>
           </button>
