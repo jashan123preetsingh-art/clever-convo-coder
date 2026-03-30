@@ -324,7 +324,7 @@ serve(async (req) => {
       LOVABLE_API_KEY,
       TRADER_SYSTEM,
       `Make trading decision for ${symbol}.\n\nRESEARCH MANAGER PLAN:\n${researchManagerDecision}\n\n${analystContext}\n\nBULL CASE:\n${bullCase}\n\nBEAR CASE:\n${bearCase}`,
-      DEEP_MODEL
+      MODEL_TRADER
     );
 
     // ── Step 6: Risk Management Debate ──
