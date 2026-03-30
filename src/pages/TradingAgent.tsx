@@ -564,13 +564,13 @@ export default function TradingAgent() {
       <div className="rounded-2xl bg-card/50 border border-border/15 p-4 mb-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-muted-foreground font-semibold mb-1.5 uppercase tracking-wider">Stock Symbol</label>
+            <label className="block text-[10px] text-muted-foreground font-semibold mb-1.5 uppercase tracking-wider">Symbol</label>
             <input
               type="text"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && runAgent()}
-              placeholder="e.g. RELIANCE, TCS, INFY"
+              placeholder="NIFTY 50 , TF 15MIN"
               className="w-full bg-secondary/40 border border-border/30 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/30 font-data transition-colors"
               disabled={loading}
             />
