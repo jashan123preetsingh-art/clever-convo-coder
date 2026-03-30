@@ -94,7 +94,6 @@ async function callAI(
 ): Promise<string> {
   return callAIRaw(apiKey, system, user, model);
 }
-}
 
 // Call AI with image (multimodal)
 async function callAIWithImage(
