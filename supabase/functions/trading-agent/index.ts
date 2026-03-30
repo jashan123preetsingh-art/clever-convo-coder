@@ -272,6 +272,7 @@ serve(async (req) => {
       : `Stock: ${symbol} (limited data)`;
 
     // ── Step 2: Analyst Team (parallel) ──
+    // Run analysts in 2 batches of 2 to reduce rate limit pressure
     const marketReportPromise = hasChart
       ? callAIWithImage(
           LOVABLE_API_KEY,
@@ -282,13 +283,17 @@ serve(async (req) => {
         )
       : callAI(LOVABLE_API_KEY, MARKET_ANALYST_SYSTEM, `Analyze ${symbol}. ${dataCtx}`, MODEL_MARKET_ANALYST);
 
-    const [marketReport, sentimentReport, newsReport, fundamentalsReport] =
-      await Promise.all([
-        marketReportPromise,
-        callAI(LOVABLE_API_KEY, SENTIMENT_ANALYST_SYSTEM, `Sentiment for ${symbol}. ${dataCtx}`, MODEL_SENTIMENT),
-        callAI(LOVABLE_API_KEY, NEWS_ANALYST_SYSTEM, `News analysis for ${symbol}. ${dataCtx}`, MODEL_NEWS),
-        callAI(LOVABLE_API_KEY, FUNDAMENTALS_ANALYST_SYSTEM, `Fundamentals for ${symbol}. ${dataCtx}`, MODEL_FUNDAMENTALS),
-      ]);
+    const [marketReport, sentimentReport] = await Promise.all([
+      marketReportPromise,
+      callAI(LOVABLE_API_KEY, SENTIMENT_ANALYST_SYSTEM, `Sentiment for ${symbol}. ${dataCtx}`, MODEL_SENTIMENT),
+    ]);
+
+    await sleep(1000); // Brief pause between batches
+
+    const [newsReport, fundamentalsReport] = await Promise.all([
+      callAI(LOVABLE_API_KEY, NEWS_ANALYST_SYSTEM, `News analysis for ${symbol}. ${dataCtx}`, MODEL_NEWS),
+      callAI(LOVABLE_API_KEY, FUNDAMENTALS_ANALYST_SYSTEM, `Fundamentals for ${symbol}. ${dataCtx}`, MODEL_FUNDAMENTALS),
+    ]);
 
     const chartNote = hasChart ? "\n\n[NOTE: The Market/Technical Analyst had access to a user-uploaded chart image and performed visual chart pattern analysis in addition to numerical data analysis.]" : "";
     const analystContext = `MARKET/TECHNICAL REPORT${hasChart ? ' (includes visual chart analysis)' : ''}:\n${marketReport}\n\nSENTIMENT REPORT:\n${sentimentReport}\n\nNEWS REPORT:\n${newsReport}\n\nFUNDAMENTALS REPORT:\n${fundamentalsReport}${chartNote}`;
