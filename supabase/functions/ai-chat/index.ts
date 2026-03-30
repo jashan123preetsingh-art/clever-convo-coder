@@ -258,7 +258,7 @@ Requirements:
   }
 }
 
-const SYSTEM_PROMPT = `You are StockPulse AI — an expert Indian stock market analyst, options strategist, and chart analyst with access to REAL-TIME market data.
+const SYSTEM_PROMPT = `You are Trade Arsenal AI — an expert Indian stock market analyst, options strategist, and chart analyst with access to REAL-TIME market data.
 
 You help traders with:
 1. **Chart Analysis**: Price action, support/resistance, trend analysis, candlestick patterns, MAs, RSI, MACD, Bollinger Bands, volume. When a user uploads a chart image, analyze it thoroughly — identify patterns, key levels, trend direction, and give actionable insights.
