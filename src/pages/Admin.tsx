@@ -9,7 +9,8 @@ import {
   LayoutDashboard, Lock, Users, CreditCard, BarChart3,
   Shield, Crown, Zap, TrendingUp, UserCheck, AlertTriangle,
   CheckCircle2, XCircle, Search, ChevronDown, Settings,
-  Eye, EyeOff, IndianRupee, Star, Sparkles, Activity
+  Eye, EyeOff, IndianRupee, Star, Sparkles, Activity,
+  Plus, Pencil, Trash2, X, Save
 } from 'lucide-react';
 
 type AdminTab = 'dashboard' | 'features' | 'users' | 'pricing' | 'analytics';
@@ -73,6 +74,42 @@ export default function Admin() {
       queryClient.invalidateQueries({ queryKey: ['feature-locks'] });
       toast.success('Feature toggled');
     },
+  });
+
+  const createFeature = useMutation({
+    mutationFn: async (data: { feature_key: string; feature_name: string; description: string; required_plan: string }) => {
+      const { error } = await supabase.from('feature_locks').insert({ ...data, is_locked: true });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feature-locks'] });
+      toast.success('Feature created');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateFeature = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; feature_name: string; description: string; required_plan: string; feature_key: string }) => {
+      const { error } = await supabase.from('feature_locks').update(data).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feature-locks'] });
+      toast.success('Feature updated');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteFeature = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('feature_locks').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feature-locks'] });
+      toast.success('Feature deleted');
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const updatePlan = useMutation({
@@ -176,7 +213,7 @@ export default function Admin() {
           transition={{ duration: 0.2 }}
         >
           {activeTab === 'dashboard' && <DashboardTab stats={stats} />}
-          {activeTab === 'features' && <FeaturesTab features={features} toggleFeature={toggleFeature} />}
+          {activeTab === 'features' && <FeaturesTab features={features} toggleFeature={toggleFeature} createFeature={createFeature} updateFeature={updateFeature} deleteFeature={deleteFeature} />}
           {activeTab === 'users' && (
             <UsersTab
               users={filteredUsers}
