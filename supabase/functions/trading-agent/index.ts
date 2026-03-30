@@ -350,7 +350,7 @@ serve(async (req) => {
       LOVABLE_API_KEY,
       PORTFOLIO_MANAGER_SYSTEM,
       `Final decision for ${symbol}.\n\n${analystContext}\n\nBULL CASE:\n${bullCase}\n\nBEAR CASE:\n${bearCase}\n\nRESEARCH MANAGER:\n${researchManagerDecision}\n\nTRADER PROPOSAL:\n${traderDecision}\n\nRISK DEBATE:\nAggressive: ${aggressiveView}\nConservative: ${conservativeView}\nNeutral: ${neutralView}`,
-      DEEP_MODEL
+      MODEL_PORTFOLIO_MGR
     );
 
     console.log(`TradingAgents pipeline complete for ${symbol}`);
