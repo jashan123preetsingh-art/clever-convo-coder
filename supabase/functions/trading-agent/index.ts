@@ -76,7 +76,7 @@ async function callAIWithImage(
   system: string,
   userText: string,
   imageUrl: string,
-  model = VISION_MODEL
+  model: string
 ): Promise<string> {
   const resp = await fetch(AI_URL, {
     method: "POST",
