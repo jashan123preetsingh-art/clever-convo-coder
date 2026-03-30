@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useStore from '@/store/useStore';
 import { INDICES as MOCK_INDICES, getAllStocks } from '@/data/mockData';
 import { formatPercent } from '@/utils/format';
-import { useStockSearch, useIndices } from '@/hooks/useStockData';
+import { useIndices } from '@/hooks/useStockData';
 import { useAuth } from '@/hooks/useAuth';
 import { AlertBell } from '@/components/PriceAlerts';
 import { useTheme } from '@/hooks/useTheme';
