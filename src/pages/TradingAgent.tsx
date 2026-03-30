@@ -547,6 +547,9 @@ export default function TradingAgent() {
   const [chartImage, setChartImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  // Options-specific config
+  const [riskReward, setRiskReward] = useState('1:2');
+  const [optionsTradeType, setOptionsTradeType] = useState('all');
 
   const handleImageFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) { toast.error('Please upload an image file'); return; }
@@ -599,7 +602,18 @@ export default function TradingAgent() {
           clearInterval(stepTimer);
           return prev;
         });
-      }, mode === 'scalp' ? 4000 : 5000);
+      }, mode === 'scalp' ? 4000 : mode === 'options' ? 6000 : 5000);
+
+      const bodyPayload: any = {
+        symbol: symbol.toUpperCase().trim(),
+        mode,
+      };
+      if (mode !== 'invest' && mode !== 'options' && chartImage) {
+        bodyPayload.chartImage = chartImage;
+      }
+      if (mode === 'options') {
+        bodyPayload.optionsConfig = { riskReward, tradeType: optionsTradeType };
+      }
 
       const resp = await fetch(`${FUNCTIONS_URL}/trading-agent`, {
         method: 'POST',
@@ -607,11 +621,7 @@ export default function TradingAgent() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({
-          symbol: symbol.toUpperCase().trim(),
-          chartImage: mode !== 'invest' ? (chartImage || undefined) : undefined,
-          mode,
-        }),
+        body: JSON.stringify(bodyPayload),
       });
 
       clearInterval(stepTimer);
