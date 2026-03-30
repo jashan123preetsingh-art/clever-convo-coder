@@ -189,11 +189,11 @@ export default function Index() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--terminal-cyan))] flex items-center justify-center">
-              <span className="text-[7px] font-black text-primary-foreground">SP</span>
+              <span className="text-[7px] font-black text-primary-foreground">TA</span>
             </div>
-            <span className="text-xs font-bold text-foreground">StockPulse</span>
+            <span className="text-xs font-bold text-foreground">Trade Arsenal</span>
           </div>
-          <p className="text-[10px] text-muted-foreground">© {new Date().getFullYear()} StockPulse. Built for Indian F&O traders.</p>
+          <p className="text-[10px] text-muted-foreground">© {new Date().getFullYear()} Trade Arsenal. Built for Indian F&O traders.</p>
         </div>
       </footer>
     </div>

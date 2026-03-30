@@ -340,7 +340,7 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
           <span className="text-[9px] text-muted-foreground/40">
             {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
           </span>
-          <span className="text-[9px] text-primary/60 font-semibold">StockPulse v3.2</span>
+          <span className="text-[9px] text-primary/60 font-semibold">Trade Arsenal v3.2</span>
         </div>
       </footer>
 

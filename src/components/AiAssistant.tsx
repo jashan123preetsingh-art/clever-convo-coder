@@ -283,7 +283,7 @@ export default function AiAssistant() {
                 <span className="text-[10px] font-black text-primary-foreground">AI</span>
               </div>
               <div className="flex-1">
-                <p className="text-[12px] font-bold text-foreground">StockPulse AI</p>
+                <p className="text-[12px] font-bold text-foreground">Trade Arsenal AI</p>
                 <div className="flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${hasLiveData ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
                   <p className="text-[9px] text-muted-foreground">

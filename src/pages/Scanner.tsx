@@ -498,6 +498,7 @@ const CATEGORY_ACCENT: Record<string, string> = {
   candle: 'border-l-[hsl(var(--terminal-purple))]',
   intraday: 'border-l-[hsl(var(--terminal-cyan))]',
   volume: 'border-l-[hsl(var(--terminal-blue))]',
+  vwap: 'border-l-[hsl(var(--terminal-amber))]',
   swing: 'border-l-[hsl(var(--terminal-amber))]',
   quality: 'border-l-[hsl(var(--terminal-purple))]',
   value: 'border-l-primary',
