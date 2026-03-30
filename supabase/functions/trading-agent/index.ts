@@ -548,13 +548,11 @@ async function runSwingPipeline(apiKey: string, symbol: string, dataCtx: string,
 
 async function runInvestPipeline(apiKey: string, symbol: string, dataCtx: string, stockData: any) {
   const M = MODELS.invest;
-  const REASONING_HIGH = { effort: "high" };
-  const REASONING_MEDIUM = { effort: "medium" };
 
-  // Step 1: Deep fundamentals WITH REASONING (Buffett style) + Moat analysis WITH REASONING
+  // Step 1: Deep fundamentals (Buffett style) + Moat analysis
   const [fundamentalsReport, moatReport] = await Promise.all([
-    callAI(apiKey, INVEST_FUNDAMENTALS_SYSTEM, `Deep fundamental analysis of ${symbol} for long-term investment (1-10 years). ${dataCtx}`, M.fundamentals, REASONING_HIGH),
-    callAI(apiKey, INVEST_MOAT_SYSTEM, `Analyze competitive moat of ${symbol}. ${dataCtx}`, M.moat, REASONING_MEDIUM),
+    callAI(apiKey, INVEST_FUNDAMENTALS_SYSTEM, `Deep fundamental analysis of ${symbol} for long-term investment (1-10 years). ${dataCtx}`, M.fundamentals),
+    callAI(apiKey, INVEST_MOAT_SYSTEM, `Analyze competitive moat of ${symbol}. ${dataCtx}`, M.moat),
   ]);
 
   await sleep(1000);
