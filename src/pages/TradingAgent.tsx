@@ -655,33 +655,57 @@ export default function TradingAgent() {
             </button>
 
             {/* What to mention guide */}
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div className="rounded-xl bg-secondary/30 border border-border/15 p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-xs">📝</span>
-                  <p className="text-[9px] font-bold text-foreground uppercase tracking-wider">Stock / Index Name</p>
+            <div className="mt-3 space-y-2">
+              {/* Stock name & indicators row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="rounded-xl bg-secondary/30 border border-border/15 p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-xs">📝</span>
+                    <p className="text-[9px] font-bold text-foreground uppercase tracking-wider">Stock / Index Name</p>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground leading-relaxed">
+                    Enter the exact symbol above — e.g. <span className="text-foreground font-semibold">RELIANCE</span>, <span className="text-foreground font-semibold">NIFTY</span>, <span className="text-foreground font-semibold">BANKNIFTY</span>
+                  </p>
                 </div>
-                <p className="text-[9px] text-muted-foreground leading-relaxed">
-                  Enter the exact symbol above — e.g. <span className="text-foreground font-semibold">RELIANCE</span>, <span className="text-foreground font-semibold">NIFTY</span>, <span className="text-foreground font-semibold">BANKNIFTY</span>
-                </p>
+                <div className="rounded-xl bg-secondary/30 border border-border/15 p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-xs">📊</span>
+                    <p className="text-[9px] font-bold text-foreground uppercase tracking-wider">Indicators</p>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground leading-relaxed">
+                    Include visible indicators — <span className="text-foreground font-semibold">RSI</span>, <span className="text-foreground font-semibold">MACD</span>, <span className="text-foreground font-semibold">Volume</span>, <span className="text-foreground font-semibold">MAs</span>
+                  </p>
+                </div>
               </div>
+
+              {/* Recommended TF by trade type */}
               <div className="rounded-xl bg-secondary/30 border border-border/15 p-3">
-                <div className="flex items-center gap-1.5 mb-1">
+                <div className="flex items-center gap-1.5 mb-2">
                   <span className="text-xs">⏱️</span>
-                  <p className="text-[9px] font-bold text-foreground uppercase tracking-wider">Timeframe</p>
+                  <p className="text-[9px] font-bold text-foreground uppercase tracking-wider">Recommended Timeframes by Trade Type</p>
                 </div>
-                <p className="text-[9px] text-muted-foreground leading-relaxed">
-                  Ensure your chart shows the timeframe clearly — <span className="text-foreground font-semibold">5min</span>, <span className="text-foreground font-semibold">15min</span>, <span className="text-foreground font-semibold">1H</span>, <span className="text-foreground font-semibold">Daily</span>, <span className="text-foreground font-semibold">Weekly</span>
-                </p>
-              </div>
-              <div className="rounded-xl bg-secondary/30 border border-border/15 p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-xs">📊</span>
-                  <p className="text-[9px] font-bold text-foreground uppercase tracking-wider">Indicators</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="rounded-lg bg-background/50 border border-[hsl(var(--terminal-red))]/15 p-2.5">
+                    <p className="text-[9px] font-bold text-[hsl(var(--terminal-red))] mb-1">⚡ Scalp Trades</p>
+                    <p className="text-[10px] font-semibold text-foreground">1min – 5min</p>
+                    <p className="text-[8px] text-muted-foreground mt-0.5">Ultra-short entries</p>
+                  </div>
+                  <div className="rounded-lg bg-background/50 border border-[hsl(var(--terminal-amber))]/15 p-2.5">
+                    <p className="text-[9px] font-bold text-[hsl(var(--terminal-amber))] mb-1">🔥 Intraday Trades</p>
+                    <p className="text-[10px] font-semibold text-foreground">5min – 30min</p>
+                    <p className="text-[8px] text-muted-foreground mt-0.5">Same-day closes</p>
+                  </div>
+                  <div className="rounded-lg bg-background/50 border border-[hsl(var(--terminal-cyan))]/15 p-2.5">
+                    <p className="text-[9px] font-bold text-[hsl(var(--terminal-cyan))] mb-1">📈 Swing Trades</p>
+                    <p className="text-[10px] font-semibold text-foreground">1H – 1D</p>
+                    <p className="text-[8px] text-muted-foreground mt-0.5">Days to weeks hold</p>
+                  </div>
+                  <div className="rounded-lg bg-background/50 border border-[hsl(var(--terminal-green))]/15 p-2.5">
+                    <p className="text-[9px] font-bold text-[hsl(var(--terminal-green))] mb-1">🏦 Position Trades</p>
+                    <p className="text-[10px] font-semibold text-foreground">1D & above</p>
+                    <p className="text-[8px] text-muted-foreground mt-0.5">Weeks to months</p>
+                  </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground leading-relaxed">
-                  Include visible indicators on chart — <span className="text-foreground font-semibold">RSI</span>, <span className="text-foreground font-semibold">MACD</span>, <span className="text-foreground font-semibold">Volume</span>, <span className="text-foreground font-semibold">Moving Averages</span>
-                </p>
               </div>
             </div>
           </div>
