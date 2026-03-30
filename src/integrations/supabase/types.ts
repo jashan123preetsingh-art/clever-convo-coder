@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      discount_codes: {
+        Row: {
+          applicable_plans: string[] | null
+          code: string
+          created_at: string | null
+          current_uses: number
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          offer_type: string
+          starts_at: string | null
+        }
+        Insert: {
+          applicable_plans?: string[] | null
+          code: string
+          created_at?: string | null
+          current_uses?: number
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          offer_type?: string
+          starts_at?: string | null
+        }
+        Update: {
+          applicable_plans?: string[] | null
+          code?: string
+          created_at?: string | null
+          current_uses?: number
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          offer_type?: string
+          starts_at?: string | null
+        }
+        Relationships: []
+      }
       feature_locks: {
         Row: {
           created_at: string | null
@@ -74,6 +122,51 @@ export type Database = {
           triggered?: boolean | null
           triggered_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      pricing_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          is_popular: boolean
+          monthly_price: number
+          plan_key: string
+          plan_name: string
+          sort_order: number
+          updated_at: string | null
+          yearly_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          monthly_price?: number
+          plan_key: string
+          plan_name: string
+          sort_order?: number
+          updated_at?: string | null
+          yearly_price?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          monthly_price?: number
+          plan_key?: string
+          plan_name?: string
+          sort_order?: number
+          updated_at?: string | null
+          yearly_price?: number
         }
         Relationships: []
       }
