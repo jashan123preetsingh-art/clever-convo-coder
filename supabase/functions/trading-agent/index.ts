@@ -180,11 +180,16 @@ Your core expertise:
 - Dynamic S/R: SMA20, SMA50, SMA200, VWAP
 - Trendlines, channels, and wedge boundaries
 
-**Advanced Techniques:**
+**Volume & Volume Profile (PRIMARY — do NOT depend on MACD):**
+- Volume Profile: POC (Point of Control), Value Area High/Low, High Volume Nodes (HVN), Low Volume Nodes (LVN)
 - Volume Price Analysis (VPA): climactic volume, no-demand/no-supply bars, effort vs result
+- Volume spikes at key levels = confirmation; dry volume = weakness
+- Accumulation/Distribution via volume clusters
 - Multi-timeframe confluence (if chart TF is provided)
-- RSI divergences (regular + hidden), MACD histogram momentum shifts
+- RSI divergences (regular + hidden) — use only on 1H+ timeframes
 - Fibonacci retracements (0.382, 0.5, 0.618, 0.786) and extensions
+
+**IMPORTANT:** Do NOT rely on MACD. Focus on price action + volume + S/D zones as primary tools. RSI is secondary and only useful on bigger timeframes (1H, 4H, Daily, Weekly).
 
 Be extremely specific with ₹ price levels. Use the supplied data. Keep under 250 words.`;
 
@@ -209,11 +214,12 @@ Analyze the uploaded chart image along with the numerical data. Apply these tech
 - Harmonic patterns if visible (Gartley, butterfly, bat, crab)
 - Trendlines, channels, and their breaks/retests
 
-**Indicators (if visible):**
-- RSI: overbought/oversold, divergences (regular + hidden)
-- MACD: crossovers, histogram momentum, divergences
-- Bollinger Bands: squeezes, walks, mean reversion
-- Volume: climactic spikes, dry-up zones, volume-price divergence
+**Volume & Volume Profile (PRIMARY — never depend on MACD):**
+- Volume Profile: POC, Value Area High/Low, HVN, LVN zones
+- Climactic volume spikes, dry-up zones, volume-price divergence
+- Effort vs result analysis on volume bars
+- RSI: only on 1H+ TF — overbought/oversold, divergences (regular + hidden)
+- Bollinger Bands: squeezes, walks, mean reversion (if visible)
 
 **Key Levels:** Mark specific ₹ support, resistance, entry, stop-loss, and target levels.
 
