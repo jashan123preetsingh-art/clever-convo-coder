@@ -1,11 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 /*
- * TradingAgents-style Multi-Agent Framework — 3 Modes
+ * TradingAgents-style Multi-Agent Framework — 4 Modes
  * 
  * Mode 1: SCALP (Intraday & Scalping) — Pure technical, fast, no fundamentals/portfolio
  * Mode 2: SWING (Swing & Position) — Full pipeline with holding duration
  * Mode 3: INVEST (Long-term 1-10yr) — Warren Buffett style, deep fundamentals
+ * Mode 4: OPTIONS — Full options analysis, OI, Greeks, strategies, risk-reward
  */
 
 const corsHeaders = {
