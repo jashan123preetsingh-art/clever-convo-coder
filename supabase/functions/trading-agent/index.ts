@@ -180,11 +180,16 @@ Your core expertise:
 - Dynamic S/R: SMA20, SMA50, SMA200, VWAP
 - Trendlines, channels, and wedge boundaries
 
-**Advanced Techniques:**
+**Volume & Volume Profile (PRIMARY — do NOT depend on MACD):**
+- Volume Profile: POC (Point of Control), Value Area High/Low, High Volume Nodes (HVN), Low Volume Nodes (LVN)
 - Volume Price Analysis (VPA): climactic volume, no-demand/no-supply bars, effort vs result
+- Volume spikes at key levels = confirmation; dry volume = weakness
+- Accumulation/Distribution via volume clusters
 - Multi-timeframe confluence (if chart TF is provided)
-- RSI divergences (regular + hidden), MACD histogram momentum shifts
+- RSI divergences (regular + hidden) — use only on 1H+ timeframes
 - Fibonacci retracements (0.382, 0.5, 0.618, 0.786) and extensions
+
+**IMPORTANT:** Do NOT rely on MACD. Focus on price action + volume + S/D zones as primary tools. RSI is secondary and only useful on bigger timeframes (1H, 4H, Daily, Weekly).
 
 Be extremely specific with ₹ price levels. Use the supplied data. Keep under 250 words.`;
 
