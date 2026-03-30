@@ -95,7 +95,7 @@ Wait for the full AI workflow to evaluate downside risks.
   return `# 🤖 Multi-Agent Analysis: ${symbol}
 **Current Price:** ${formatCurrency(stockData.price)} (${stockData.changePct >= 0 ? "+" : ""}${stockData.changePct?.toFixed(2)}%)
 
-⚠️ StockPulse AI is busy right now, so this fallback report is generated from live market data instead of the full AI workflow.
+⚠️ Trade Arsenal AI is busy right now, so this fallback report is generated from live market data instead of the full AI workflow.
 
 ---
 
