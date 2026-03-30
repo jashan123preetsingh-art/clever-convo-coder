@@ -9,7 +9,8 @@ import {
   LayoutDashboard, Lock, Users, CreditCard, BarChart3,
   Shield, Crown, Zap, TrendingUp, UserCheck, AlertTriangle,
   CheckCircle2, XCircle, Search, ChevronDown, Settings,
-  Eye, EyeOff, IndianRupee, Star, Sparkles, Activity
+  Eye, EyeOff, IndianRupee, Star, Sparkles, Activity,
+  Plus, Pencil, Trash2, X, Save
 } from 'lucide-react';
 
 type AdminTab = 'dashboard' | 'features' | 'users' | 'pricing' | 'analytics';
